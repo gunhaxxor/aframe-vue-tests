@@ -3,6 +3,7 @@ import { ref, type Ref, reactive, onBeforeMount, watch } from 'vue';
 import lampUrl from '@/assets/LightsPunctualLamp.glb?url'
 import { components, type Entity } from 'aframe';
 
+import UIOverlay from '@/components/UIOverlay.vue';
 import PopUp from '@/components/PopUp.vue';
 
 import {
@@ -138,8 +139,9 @@ function openPopupParts(evt: Event, part: string, cIdx: number) {
 </script>
 
 <template>
-  <div id="colorpickers-container" style="position: absolute; left: 5rem; top: 5rem; z-index: 5000;">
-    <div class="grid justify-center grid-cols-[auto_auto_auto_auto_auto] items-center gap-3">
+    <UIOverlay class="p-10 overflow-y-auto">
+  <!-- <div id="colorpickers-container" style="position: absolute; left: 5rem; top: 5rem; z-index: 5000;" class="h-screen overflow-y-scroll"> -->
+    <div class="grid justify-center grid-cols-[auto_auto_auto_auto_auto] items-center gap-3 ">
       <div class="col-span-3 col-start-1 text-center">
         <div class="label col-span-3 ">
         <span class="label-text text-capitalize">skin color</span>
@@ -275,11 +277,13 @@ function openPopupParts(evt: Event, part: string, cIdx: number) {
       <button class="p-3 text-white rounded-xl bg-slate-800" @click="saveAvatarSettingsToStorage">save</button>
       <button class="p-3 text-white rounded-xl bg-slate-800" @click="loadAvatarFromStorage">load</button>
     </div>
-  </div>
+  </UIOverlay>
+
   <div class="absolute top-0 right-0 z-50 h-screen p-10 overflow-y-scroll">
     <pre class="text-xs">{{ currentColorSettings }}</pre>
     <pre class="text-xs">{{ currentAvatarSettings }}</pre>
   </div>
+
   <a-scene ref="sceneTag" style="width: 100vw; height: 100vh;" cursor="fuse:false; rayOrigin:mouse;"
     raycaster="objects: .clickable" xr-mode-ui="enabled: false;">
     <!-- <a-light id="dirlight" intensity="1" light="castShadow:true;type:directional" position="1 1 1"></a-light> -->
