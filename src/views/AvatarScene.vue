@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive, onBeforeMount, watch } from 'vue';
+import { ref, type Ref, reactive, onBeforeMount, watch } from 'vue';
 import lampUrl from '@/assets/LightsPunctualLamp.glb?url'
-import type { Entity } from 'aframe';
+import { components, type Entity } from 'aframe';
+
+import PopUp from '@/components/PopUp.vue';
 
 import {
   Listbox,
@@ -11,6 +13,12 @@ import {
   ListboxOption,
 } from '@headlessui/vue'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
+
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
+
+
+import {Vue3ColorPicker} from '@cyhnkckali/vue3-color-picker';
+import "@cyhnkckali/vue3-color-picker/dist/style.css"
 
 onBeforeMount(() => {
   // loadAvatarFromStorage();
@@ -62,6 +70,7 @@ const skinColorIsActive = ref(false);
 function onColorPicked(part: string, colorIdx: number, color: string) {
   console.log('color picked', part, colorIdx, color);
   currentAvatarSettings.parts[part].colors[colorIdx] = color;
+  customColorsIsActive[part][colorIdx] = true
 }
 
 function setDefaultColors(part: string, colors) {
@@ -117,6 +126,15 @@ function changeClothingIdx(partType: keyof typeof avatarAssets, offset: number) 
   currentAvatarSettings.parts[partType].model = newModelName;
 }
 
+const popupSkin = ref<InstanceType<typeof PopUp> | null>(null)
+const popupParts = ref<InstanceType<typeof PopUp> | null>(null)
+const popupPartsKeys = ref<{part: string, cIdx: number} | null>(null)
+
+function openPopupParts(evt: Event, part: string, cIdx: number) {
+  popupParts.value?.open(evt)
+  popupPartsKeys.value = {part, cIdx}
+}
+
 </script>
 
 <template>
@@ -124,26 +142,35 @@ function changeClothingIdx(partType: keyof typeof avatarAssets, offset: number) 
     <div class="grid justify-center grid-cols-[auto_auto_auto_auto_auto] items-center gap-3">
       <div class="col-span-3 col-start-1 text-center">
         <div class="label col-span-3 ">
-          <span class="label-text text-capitalize">skin color</span>
+        <span class="label-text text-capitalize">skin color</span>
       </div>
       </div>
-      <input type="checkbox" v-model="skinColorIsActive">
-      <div
+      <div>
+        <div class="join">
+          <input type="checkbox" class="checkbox join-item" v-model="skinColorIsActive" >
+          <button class="btn btn-xs btn-circle btn-outline join-item" :style="{'background': currentSkinColor}" @click="popupSkin.open">
+          </button>
+        </div>
+        <PopUp ref="popupSkin">
+          <Vue3ColorPicker class="absolute top-100" v-model="currentSkinColor" @update:model-value="skinColorIsActive = true" mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false" :showInputMenu="false" :showInputSet="false"/>
+        </PopUp>
+      </div>
+      
+      <!-- <div
         class="has-[:disabled]:outline-slate-700/40 bg-transparent inline-block m-2 overflow-hidden rounded-full size-7 outline-offset-2 outline-2 outline outline-slate-700">
         <input :disabled="!skinColorIsActive" class="disabled:invisible size-[200%] m-[-50%] cursor-pointer"
           type="color" v-model="currentSkinColor">
-      </div>
+      </div> -->
       <template v-for="(partsList, key) in avatarAssets" :key="key">
         <template v-if="avatarAssets[key].length > 1">
           <!-- <div class="bg-white"> -->
           <!-- <div class="grid items-center col-span-3 col-start-1 grid-cols-subgrid"> -->
             
-           <!-- <div class="col-span-3 text-capitalize">{{ key }}</div>  -->
           <div class="grid col-span-3 grid-cols-subgrid flex-col">
             <div class="label col-span-3 ">
               <span class="label-text text-capitalize">{{key}}</span>
             </div>
-          <div class=" items-center  bg-white join">
+          <div class="items-center bg-white join">
             <button @click="changeClothingIdx(key, -1)" class="text-slate-700 pl-2 pr-2  hover:bg-slate-200 m-0 h-full join-item">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                 <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
@@ -221,20 +248,29 @@ function changeClothingIdx(partType: keyof typeof avatarAssets, offset: number) 
           <template v-for="(_v, cIdx) in partsNrOfColors[key]" :key="cIdx">
             <div>
 
-              <input type="checkbox" @input="onCustomColorActiveChanged(key, cIdx, $event.target.checked)"
+              <!-- <input type="checkbox" @input="onCustomColorActiveChanged(key, cIdx, $event.target.checked)"
                 v-model="customColorsIsActive[key][cIdx]">
               <div
                 class="has-[:disabled]:outline-slate-700/40 bg-transparent inline-block m-2 overflow-hidden rounded-full disabled:size-1 size-7 outline-offset-2 outline-2 outline outline-slate-700">
                 <input :disabled="!customColorsIsActive[key][cIdx]"
                   class="disabled:invisible size-[200%] m-[-50%] cursor-pointer" type="color"
                   @input="onColorPicked(key, cIdx, $event.target.value)" v-model="currentColorSettings[key][cIdx]">
-                  </div>
-              </div>
+                </div> -->
+                <div class="join">
+                  <input type="checkbox" class="checkbox join-item" v-model="customColorsIsActive[key][cIdx]" @change="onCustomColorActiveChanged(key, cIdx, customColorsIsActive[key][cIdx])">
+                  <button class="btn btn-xs btn-circle btn-outline join-item" :style="{'background': currentColorSettings[key][cIdx]}" @click="openPopupParts($event,key,cIdx)"/>
+                </div>
+      
+            </div>
           </template>
         <!-- </div> -->
         </template>
       </template>
+      <PopUp ref="popupParts">
+        <Vue3ColorPicker class="absolute top-100" v-model="currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx]" @update:model-value="onColorPicked(popupPartsKeys!.part, popupPartsKeys!.cIdx, currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx])" mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false" :showInputMenu="false" :showInputSet="false"/>
+      </PopUp>
     </div>
+    
     <div class="flex gap-4 mt-6">
       <button class="p-3 text-white rounded-xl bg-slate-800" @click="saveAvatarSettingsToStorage">save</button>
       <button class="p-3 text-white rounded-xl bg-slate-800" @click="loadAvatarFromStorage">load</button>
