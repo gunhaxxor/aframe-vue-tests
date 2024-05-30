@@ -148,13 +148,21 @@ function openPopupParts(evt: Event, part: string, cIdx: number) {
       </div>
       </div>
       <div>
-        <div class="join">
-          <input type="checkbox" class="checkbox join-item" v-model="skinColorIsActive" >
-          <button class="btn btn-xs btn-circle btn-outline join-item" :style="{'background': currentSkinColor}" @click="popupSkin.open">
+        <!-- <div class="join"> -->
+          <!-- <input type="checkbox" class="checkbox join-item" v-model="skinColorIsActive" > -->
+          <button class="btn btn-xs btn-circle btn-outline join-item" :style="{'background': skinColorIsActive ? currentSkinColor : 'transparent'}" @click="popupSkin.open">
+            <svg v-if="!skinColorIsActive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+  <path fill-rule="evenodd" d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l14.5 14.5a.75.75 0 1 0 1.06-1.06l-1.745-1.745a10.029 10.029 0 0 0 3.3-4.38 1.651 1.651 0 0 0 0-1.185A10.004 10.004 0 0 0 9.999 3a9.956 9.956 0 0 0-4.744 1.194L3.28 2.22ZM7.752 6.69l1.092 1.092a2.5 2.5 0 0 1 3.374 3.373l1.091 1.092a4 4 0 0 0-5.557-5.557Z" clip-rule="evenodd" />
+  <path d="m10.748 13.93 2.523 2.523a9.987 9.987 0 0 1-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 0 1 0-1.186A10.007 10.007 0 0 1 2.839 6.02L6.07 9.252a4 4 0 0 0 4.678 4.678Z" />
+</svg>
           </button>
-        </div>
-        <PopUp ref="popupSkin">
-          <Vue3ColorPicker class="absolute top-100" v-model="currentSkinColor" @update:model-value="skinColorIsActive = true" mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false" :showInputMenu="false" :showInputSet="false"/>
+        <!-- </div> -->
+        <PopUp ref="popupSkin" class="bg-white rounded-xl">
+          <Vue3ColorPicker v-model="currentSkinColor" @update:model-value="skinColorIsActive = true" mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false" :showInputMenu="false" :showInputSet="false"/>
+          <label class="label cursor-pointer">
+            <span class="label-text">Color active</span> 
+            <input type="checkbox" class="toggle" :style="{'background-color': skinColorIsActive ? currentSkinColor : 'grey'}" v-model="skinColorIsActive">
+          </label>
         </PopUp>
       </div>
       
@@ -258,9 +266,26 @@ function openPopupParts(evt: Event, part: string, cIdx: number) {
                   class="disabled:invisible size-[200%] m-[-50%] cursor-pointer" type="color"
                   @input="onColorPicked(key, cIdx, $event.target.value)" v-model="currentColorSettings[key][cIdx]">
                 </div> -->
-                <div class="join">
-                  <input type="checkbox" class="checkbox join-item" v-model="customColorsIsActive[key][cIdx]" @change="onCustomColorActiveChanged(key, cIdx, customColorsIsActive[key][cIdx])">
-                  <button class="btn btn-xs btn-circle btn-outline join-item" :style="{'background': currentColorSettings[key][cIdx]}" @click="openPopupParts($event,key,cIdx)"/>
+                <div class="">
+                  <!-- <input type="checkbox" class="checkbox join-item" v-model="customColorsIsActive[key][cIdx]" @change="onCustomColorActiveChanged(key, cIdx, customColorsIsActive[key][cIdx])"> -->
+                  <!-- <button class="btn btn-xs p-0 join-item" @click="customColorsIsActive[key][cIdx] = !customColorsIsActive[key][cIdx]; onCustomColorActiveChanged(key, cIdx, customColorsIsActive[key][cIdx])">
+                    <svg v-if="customColorsIsActive[key][cIdx]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+</svg>
+
+<svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+</svg>
+
+
+</button> -->
+                  <button class="btn btn-xs btn-circle btn-outline join-item" :style="{'background': customColorsIsActive[key][cIdx] ? currentColorSettings[key][cIdx] : 'transparent'}" @click="openPopupParts($event,key,cIdx)">
+                    <svg v-if="!customColorsIsActive[key][cIdx]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+  <path fill-rule="evenodd" d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l14.5 14.5a.75.75 0 1 0 1.06-1.06l-1.745-1.745a10.029 10.029 0 0 0 3.3-4.38 1.651 1.651 0 0 0 0-1.185A10.004 10.004 0 0 0 9.999 3a9.956 9.956 0 0 0-4.744 1.194L3.28 2.22ZM7.752 6.69l1.092 1.092a2.5 2.5 0 0 1 3.374 3.373l1.091 1.092a4 4 0 0 0-5.557-5.557Z" clip-rule="evenodd" />
+  <path d="m10.748 13.93 2.523 2.523a9.987 9.987 0 0 1-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 0 1 0-1.186A10.007 10.007 0 0 1 2.839 6.02L6.07 9.252a4 4 0 0 0 4.678 4.678Z" />
+</svg>
+                  </button>
                 </div>
       
             </div>
@@ -268,8 +293,14 @@ function openPopupParts(evt: Event, part: string, cIdx: number) {
         <!-- </div> -->
         </template>
       </template>
-      <PopUp ref="popupParts">
-        <Vue3ColorPicker class="absolute top-100" v-model="currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx]" @update:model-value="onColorPicked(popupPartsKeys!.part, popupPartsKeys!.cIdx, currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx])" mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false" :showInputMenu="false" :showInputSet="false"/>
+      <PopUp ref="popupParts" class="bg-white rounded-xl">
+        <Vue3ColorPicker v-model="currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx]" @update:model-value="onColorPicked(popupPartsKeys!.part, popupPartsKeys!.cIdx, currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx])" mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false" :showInputMenu="false" :showInputSet="false"/>
+
+        <label class="label cursor-pointer">
+          <span class="label-text">Color active</span> 
+          <input type="checkbox" class="toggle" :style="{'background-color': customColorsIsActive[popupPartsKeys!.part][popupPartsKeys!.cIdx] ? currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx] : 'grey'}" v-model="customColorsIsActive[popupPartsKeys!.part][popupPartsKeys!.cIdx]" @change="onCustomColorActiveChanged(popupPartsKeys!.part, popupPartsKeys!.cIdx, customColorsIsActive[popupPartsKeys!.part][popupPartsKeys!.cIdx])">
+        </label>
+          
       </PopUp>
     </div>
     
