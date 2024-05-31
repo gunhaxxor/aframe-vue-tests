@@ -2,25 +2,23 @@
 </script>
 
 <template>
-  <div id="UI">
-    <div>
-      <slot />
-    </div>
+  <div id="tp-ui">
+    <slot />
   </div>
 </template>
 
 <style scoped>
-#UI {
-  position: fixed;
+#tp-ui {
+  position: absolute;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 1;
+  z-index: 10;
   pointer-events: none;
 }
 
-#UI > * {
+#tp-ui>* {
   display: inline-block;
   pointer-events: all;
 }
