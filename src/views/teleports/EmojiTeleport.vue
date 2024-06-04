@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type Ref, ref } from 'vue';
+import { type Ref, ref, computed } from 'vue';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
 
 import { isVR } from '@/composables/utils'
@@ -21,14 +21,19 @@ type Tuple = [number, number]
 const props = defineProps<{
   sheetUrl: string,
   uvs: Tuple,
-  coords: Array<Tuple>
+  coords: Array<Array<Tuple>>,
+  columns: number
 }>()
 
 const emit = defineEmits<{
   change: [coords: Tuple, active: boolean]
 }>()
 
-const selectedCoords = ref<Tuple>(props.coords[0])
+const coordsFlat = computed(() => {
+  return props.coords.flat(1)
+})
+
+const selectedCoords = ref<Tuple>(coordsFlat.value[0])
 const active = ref(false)
 
 const timeout = ref(-1)
@@ -52,6 +57,15 @@ function emitChange() {
   emit('change', selectedCoords.value, active.value)
 }
 
+// const coordsSplit = computed(() => {
+//   let coordsCopy = [...props.coords]
+//   let arr: Array<Array<Tuple>> = []
+//   while (coordsCopy.length) {
+//     arr.push(coordsCopy.splice(0, props.columns))
+//   }
+//   return arr
+// })
+
 </script>
 
 <template>
@@ -72,7 +86,7 @@ function emitChange() {
 
             <ListboxOptions
               class="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
-              <ListboxOption v-for="(coords, i) in props.coords" :key="i" :value="coords">
+              <ListboxOption v-for="(coords, i) in coordsFlat" :key="i" :value="coords">
                 <li :class="[
                   coords.toString() === selectedCoords.toString() ? 'bg-slate-300' : 'bg-white',
                   'relative cursor-pointer select-none py-2 pl-4 pr-4']">
@@ -91,20 +105,22 @@ function emitChange() {
     </Teleport>
 
     <Teleport :to="isVR ? '#tp-aframe-hand-left' : '#tp-aframe-camera'">
-      <a-entity position="0 0 -0.5"
-        mesh-ui-block="backgroundOpacity: 0.2; contentDirection: row; justifyContent: space-evenly; fontSize: 0.03;"
+      <a-entity position="0 0 -0.5" mesh-ui-block="backgroundOpacity: 0.2; contentDirection: column; fontSize: 0.03;"
         class="">
-
-        <a-entity v-for="(coords, i) in props.coords" :key="i"
-          mesh-ui-block="backgroundOpacity: 0; width: 0.1; height: 0.1; margin: 0.025;" class="clickable"
-          @click="selectEmoji(coords)">
-          <a-entity ref="emoji" position="0 0 0.01">
-            <a-entity :atlas-uvs="'totalRows: 43; totalColumns: 43; column: ' + coords[0] + '; row: ' + coords[1] + ';'"
-              :material="`src: ${sheetUrl}; transparent: true; shader: flat;`"
-              geometry="primitive: plane; width: 0.1; height: 0.1; buffer: true; skipCache: true" />
-          </a-entity>
+        <a-entity v-for="(coordsGroup, iCg) in coords" :key="iCg"
+          mesh-ui-block="backgroundOpacity: 0; contentDirection: row; textAlign: left;">
+          <template v-for="(coords, iC) in coordsGroup" :key="iC">
+            <a-entity mesh-ui-block="backgroundOpacity: 0; width: 0.05; height: 0.05; margin: 0.01;" class="clickable"
+              @click="selectEmoji(coords)">
+              <a-entity ref="emoji" position="0 0 0.01">
+                <a-entity
+                  :atlas-uvs="'totalRows: 43; totalColumns: 43; column: ' + coords[0] + '; row: ' + coords[1] + ';'"
+                  :material="`src: ${sheetUrl}; transparent: true; shader: flat;`"
+                  geometry="primitive: plane; width: 0.05; height: 0.05; buffer: true; skipCache: true" />
+              </a-entity>
+            </a-entity>
+          </template>
         </a-entity>
-
       </a-entity>
     </Teleport>
 

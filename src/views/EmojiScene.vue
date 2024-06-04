@@ -80,8 +80,9 @@ function setEmojiSelf(coords: Tuple, active: boolean) {
   <!-- #region Teleports -->
   <!-- Components that can render for both screen/UI and VR, keeping all logic within the same component -->
 
-  <EmojiTeleport :sheet-url="emojiSheetUrl" :uvs="[43, 43]" :coords="[[35, 8], [34, 8], [36, 26], [36, 27]]"
-    @change="setEmojiSelf" :isVR="false" />
+  <EmojiTeleport :sheet-url="emojiSheetUrl" :uvs="[43, 43]"
+    :coords="[[[35, 8], [36, 37], [36, 38], [15, 8], [36, 27]], [[34, 8], [2, 8], [36, 24], [36, 25], [21, 8],], [[28, 26], [28, 20], [28, 38], [3, 16], [2, 1]]]"
+    @change="setEmojiSelf" :isVR="false" :columns="5" />
 
   <!-- #endregion -->
 
