@@ -104,7 +104,7 @@ function emitChange() {
       <EmojiSelf :sheet-url="sheetUrl" :coords="selectedCoords" :active="active" />
     </Teleport>
 
-    <Teleport :to="isVR ? '#tp-aframe-hand-left' : '#tp-aframe-camera'">
+    <Teleport :to="isVR ? '#tp-aframe-hand-left-a-down' : '#tp-aframe-camera'">
       <a-entity position="0 0 -0.5" mesh-ui-block="backgroundOpacity: 0.2; contentDirection: column; fontSize: 0.03;"
         class="">
         <a-entity v-for="(coordsGroup, iCg) in coords" :key="iCg"

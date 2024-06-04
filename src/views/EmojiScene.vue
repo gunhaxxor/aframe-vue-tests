@@ -28,6 +28,8 @@ function setEmojiSelf(coords: Tuple, active: boolean) {
   emojiActiveOther.value = active
 }
 
+const oculusButtons = ref({ 'a-left': false })
+
 </script>
 
 <template>
@@ -51,7 +53,10 @@ function setEmojiSelf(coords: Tuple, active: boolean) {
     </a-entity>
 
     <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
-    <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left"></a-entity>
+    <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left" @abuttondown="oculusButtons['a-left'] = true"
+      @abuttonup="oculusButtons['a-left'] = false">
+      <a-entity v-if="oculusButtons['a-left']" id="tp-aframe-hand-left-a-down"></a-entity>
+    </a-entity>
     <a-entity id="tp-aframe-hand-right" oculus-touch-controls="hand: right"></a-entity>
 
     <!-- #region Misc demo stuff -->
