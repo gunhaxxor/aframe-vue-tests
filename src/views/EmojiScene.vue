@@ -42,7 +42,7 @@ simulateOculus()
   <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
   <a-scene id="tp-aframe-scene" ref="sceneTag" style="width: 100vw; height: 100vh;"
     cursor="fuse:false; rayOrigin:mouse;" raycaster="objects: .clickable" xr-mode-ui="enabled: true;"
-    @enter-vr="isVR = true" @exit-vr="isVR = false" look>
+    @enter-vr="isVR = true" @exit-vr="isVR = false" look renderer="sortTransparentObjects: true">
 
     <a-assets>
       <a-asset-item id="sponza" :src="sponzaUrl"></a-asset-item>
@@ -69,13 +69,11 @@ simulateOculus()
     <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
     <template v-if="!oculusHandSimulator.simulate">
       <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left" @xbuttondown="oculusButtons['x'] = true"
-        @xbuttonup="oculusButtons['x'] = false">
-
-        <a-entity v-if="oculusButtons['x']" id="tp-aframe-hand-x-down">
-          <a-sphere scale="0.1 0.1 0.1"></a-sphere>
-        </a-entity>
-      </a-entity>
-      <a-entity id="tp-aframe-hand-right" oculus-touch-controls="hand: right"></a-entity>
+        @xbuttonup="oculusButtons['x'] = false" @ybuttondown="oculusButtons['y'] = true"
+        @ybuttonup="oculusButtons['y'] = false"></a-entity>
+      <a-entity id="tp-aframe-hand-right" oculus-touch-controls="hand: right" @abuttondown="oculusButtons['a'] = true"
+        @abuttonup="oculusButtons['a'] = false" @bbuttondown="oculusButtons['b'] = true"
+        @bbuttonup="oculusButtons['b'] = false"></a-entity>
     </template>
 
     <!-- #region Misc demo stuff -->

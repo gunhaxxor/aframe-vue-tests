@@ -1,6 +1,8 @@
 import { ref } from 'vue';
 
 export const isVR = ref(false);
+
+// #region Simulate VR & hand Oculus controls on desktop
 export const oculusButtons = ref({ 'a': false, 'b': false, 'x': false, 'y': false })
 
 export const oculusHandSimulator = ref({ 'simulate': false, 'hands-active': false })
@@ -43,3 +45,5 @@ export function simulateOculus() {
         }
     })
 }
+
+// #endregion
