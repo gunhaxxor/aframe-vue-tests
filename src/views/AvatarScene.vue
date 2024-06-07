@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onBeforeMount, watch } from 'vue';
+import { ref, type Ref, reactive, onBeforeMount, watch } from 'vue';
 import lampUrl from '@/assets/LightsPunctualLamp.glb?url'
-import type { Entity } from 'aframe';
+import { components, type Entity } from 'aframe';
+
+import UIOverlay from '@/components/UIOverlay.vue';
+import PopUp from '@/components/PopUp.vue';
 
 import {
   Listbox,
@@ -12,6 +15,12 @@ import {
 } from '@headlessui/vue'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
+
+
+import { Vue3ColorPicker } from '@cyhnkckali/vue3-color-picker';
+import "@cyhnkckali/vue3-color-picker/dist/style.css"
+
 onBeforeMount(() => {
   // loadAvatarFromStorage();
 })
@@ -20,15 +29,15 @@ const avatarAssets = {
   hands: ['hands_basic_left'],
   heads: ['heads_basic'],
   torsos: ['torsos_basic_male'],
-  eyes: ['eyes_huge', 'eyes_relaxed','eyes_cool','eyes_kind','eyes_round','eyes_npc'],
-  eyebrows: ['eyebrows_brookie', 'eyebrows_innocent', 'eyebrows_reynolds','eyebrows_tyler','eyebrows_npc',undefined],
-  mouths: ['mouth_polite_smile', 'mouth_prettypolite_smile','mouth_npc'],
-  hair: ['hair_ponytail', 'hair_multicolor', 'hair_thick_buzzcut','hair_cool','hair_kevin','hair_wolf', undefined],
-  facialhair: [undefined,'facialhair_almond','facialhair_bigboi','facialhair_curled','facialhair_johnny','facialhair_laotzu'],
-  clothes: ['clothes_poloshirt','clothes_button_dress','clothes_casual_dress','clothes_fancy_dress','clothes_tshirt','clothes_turtleneck','clothes_vneck', undefined],
-  accessories: [undefined,'accessories_cateye', 'accessories_round', 'accessories_square'],
-  jewelry: [undefined,'jewelry_pearl', 'jewelry_diamond', 'jewelry_diamond2', 'jewelry_diamond3', 'jewelry_sparkling_hoopdrop_gold', 'jewelry_sparkling_hoopdrop_silver','jewelry_diamond_tripple','jewelry_hoopdroop_gold','jewelry_hoopdroop_silver','jewelry_pearl_tripple','jewelry_star_tripple_gold','jewelry_star_tripple_silver'],
-  layer: [undefined,'layer_lowrider','layer_safari']
+  eyes: ['eyes_huge', 'eyes_relaxed', 'eyes_cool', 'eyes_kind', 'eyes_round', 'eyes_npc'],
+  eyebrows: ['eyebrows_brookie', 'eyebrows_innocent', 'eyebrows_reynolds', 'eyebrows_tyler', 'eyebrows_npc', undefined],
+  mouths: ['mouth_polite_smile', 'mouth_prettypolite_smile', 'mouth_npc'],
+  hair: ['hair_ponytail', 'hair_multicolor', 'hair_thick_buzzcut', 'hair_cool', 'hair_kevin', 'hair_wolf', undefined],
+  facialhair: [undefined, 'facialhair_almond', 'facialhair_bigboi', 'facialhair_curled', 'facialhair_johnny', 'facialhair_laotzu'],
+  clothes: ['clothes_poloshirt', 'clothes_button_dress', 'clothes_casual_dress', 'clothes_fancy_dress', 'clothes_tshirt', 'clothes_turtleneck', 'clothes_vneck', undefined],
+  accessories: [undefined, 'accessories_cateye', 'accessories_round', 'accessories_square'],
+  jewelry: [undefined, 'jewelry_pearl', 'jewelry_diamond', 'jewelry_diamond2', 'jewelry_diamond3', 'jewelry_sparkling_hoopdrop_gold', 'jewelry_sparkling_hoopdrop_silver', 'jewelry_diamond_tripple', 'jewelry_hoopdroop_gold', 'jewelry_hoopdroop_silver', 'jewelry_pearl_tripple', 'jewelry_star_tripple_gold', 'jewelry_star_tripple_silver'],
+  layer: [undefined, 'layer_lowrider', 'layer_safari']
 };
 
 const skinParts = ['hands', 'heads', 'torsos'];
@@ -62,10 +71,11 @@ const skinColorIsActive = ref(false);
 function onColorPicked(part: string, colorIdx: number, color: string) {
   console.log('color picked', part, colorIdx, color);
   currentAvatarSettings.parts[part].colors[colorIdx] = color;
+  customColorsIsActive[part][colorIdx] = true
 }
 
 function setDefaultColors(part: string, colors) {
-  if(!currentAvatarSettings.parts[part].colors.length){
+  if (!currentAvatarSettings.parts[part].colors.length) {
 
   }
 }
@@ -117,133 +127,197 @@ function changeClothingIdx(partType: keyof typeof avatarAssets, offset: number) 
   currentAvatarSettings.parts[partType].model = newModelName;
 }
 
+const popupSkin = ref<InstanceType<typeof PopUp> | null>(null)
+const popupParts = ref<InstanceType<typeof PopUp> | null>(null)
+const popupPartsKeys = ref<{ part: string, cIdx: number } | null>(null)
+
+function openPopupParts(evt: Event, part: string, cIdx: number) {
+  popupParts.value?.open(evt)
+  popupPartsKeys.value = { part, cIdx }
+}
+
 </script>
 
 <template>
-  <div id="colorpickers-container" style="position: absolute; left: 5rem; top: 5rem; z-index: 5000;">
-    <div class="grid justify-center grid-cols-[auto_auto_auto_auto_auto] items-center gap-3">
+  <UIOverlay class="p-10 overflow-y-auto">
+    <!-- <div id="colorpickers-container" style="position: absolute; left: 5rem; top: 5rem; z-index: 5000;" class="h-screen overflow-y-scroll"> -->
+    <div class="grid justify-center grid-cols-[auto_auto_auto_auto_auto] items-center gap-3 ">
       <div class="col-span-3 col-start-1 text-center">
         <div class="label col-span-3 ">
           <span class="label-text text-capitalize">skin color</span>
+        </div>
       </div>
+      <div>
+        <!-- <div class="join"> -->
+        <!-- <input type="checkbox" class="checkbox join-item" v-model="skinColorIsActive" > -->
+        <button class="btn btn-xs btn-circle btn-outline join-item"
+          :style="{ 'background': skinColorIsActive ? currentSkinColor : 'transparent' }" @click="popupSkin.open">
+          <svg v-if="!skinColorIsActive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+            class="size-5">
+            <path fill-rule="evenodd"
+              d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l14.5 14.5a.75.75 0 1 0 1.06-1.06l-1.745-1.745a10.029 10.029 0 0 0 3.3-4.38 1.651 1.651 0 0 0 0-1.185A10.004 10.004 0 0 0 9.999 3a9.956 9.956 0 0 0-4.744 1.194L3.28 2.22ZM7.752 6.69l1.092 1.092a2.5 2.5 0 0 1 3.374 3.373l1.091 1.092a4 4 0 0 0-5.557-5.557Z"
+              clip-rule="evenodd" />
+            <path
+              d="m10.748 13.93 2.523 2.523a9.987 9.987 0 0 1-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 0 1 0-1.186A10.007 10.007 0 0 1 2.839 6.02L6.07 9.252a4 4 0 0 0 4.678 4.678Z" />
+          </svg>
+        </button>
+        <!-- </div> -->
+        <PopUp ref="popupSkin" class="bg-white rounded-xl">
+          <Vue3ColorPicker v-model="currentSkinColor" @update:model-value="skinColorIsActive = true" mode="solid"
+            inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false"
+            :showInputMenu="false" :showInputSet="false" />
+          <label class="label cursor-pointer">
+            <span class="label-text">Color active</span>
+            <input type="checkbox" class="toggle"
+              :style="{ 'background-color': skinColorIsActive ? currentSkinColor : 'grey' }" v-model="skinColorIsActive">
+          </label>
+        </PopUp>
       </div>
-      <input type="checkbox" v-model="skinColorIsActive">
-      <div
+
+      <!-- <div
         class="has-[:disabled]:outline-slate-700/40 bg-transparent inline-block m-2 overflow-hidden rounded-full size-7 outline-offset-2 outline-2 outline outline-slate-700">
         <input :disabled="!skinColorIsActive" class="disabled:invisible size-[200%] m-[-50%] cursor-pointer"
           type="color" v-model="currentSkinColor">
-      </div>
+      </div> -->
       <template v-for="(partsList, key) in avatarAssets" :key="key">
         <template v-if="avatarAssets[key].length > 1">
           <!-- <div class="bg-white"> -->
           <!-- <div class="grid items-center col-span-3 col-start-1 grid-cols-subgrid"> -->
-            
-           <!-- <div class="col-span-3 text-capitalize">{{ key }}</div>  -->
+
           <div class="grid col-span-3 grid-cols-subgrid flex-col">
             <div class="label col-span-3 ">
-              <span class="label-text text-capitalize">{{key}}</span>
+              <span class="label-text text-capitalize">{{ key }}</span>
             </div>
-          <div class=" items-center  bg-white join">
-            <button @click="changeClothingIdx(key, -1)" class="text-slate-700 pl-2 pr-2  hover:bg-slate-200 m-0 h-full join-item">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <!-- <span class="text-center join-item">{{ key }} {{ avatarAssets[key].indexOf(currentAvatarSettings.parts[key].model)}}</span> -->
-            <!-- <span class="text-center join-item text-capitalize"> {{ currentAvatarSettings.parts[key].model?.split("_").slice(1).join(" ")}}</span> -->
+            <div class="items-center bg-white join">
+              <button @click="changeClothingIdx(key, -1)"
+                class="text-slate-700 pl-2 pr-2  hover:bg-slate-200 m-0 h-full join-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                  <path fill-rule="evenodd"
+                    d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z"
+                    clip-rule="evenodd" />
+                </svg>
+              </button>
+              <!-- <span class="text-center join-item">{{ key }} {{ avatarAssets[key].indexOf(currentAvatarSettings.parts[key].model)}}</span> -->
+              <!-- <span class="text-center join-item text-capitalize"> {{ currentAvatarSettings.parts[key].model?.split("_").slice(1).join(" ")}}</span> -->
 
-            <Listbox v-model="currentAvatarSettings.parts[key].model" class="w-36">
-      <div class="relative mt-1">
-        <ListboxButton
-          class="relative w-full cursor-default bg-white py-2 pl-3 pr-10 text-left focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
-        >
-          <span class="block truncate capitalize">{{ currentAvatarSettings.parts[key].model?.split("_").slice(1).join(" ")  || "None"}}</span>
-          <span
-            class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"
-          >
-            <ChevronUpDownIcon
-              class="h-5 w-5 text-gray-400"
-              aria-hidden="true"
-            />
-          </span>
-        </ListboxButton>
+              <Listbox v-model="currentAvatarSettings.parts[key].model" class="w-36">
+                <div class="relative mt-1">
+                  <ListboxButton
+                    class="relative w-full cursor-default bg-white py-2 pl-3 pr-10 text-left focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
+                    <span class="block truncate capitalize">{{
+                      currentAvatarSettings.parts[key].model?.split("_").slice(1).join(" ") || "None"}}</span>
+                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                      <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </span>
+                  </ListboxButton>
 
-        <transition
-          leave-active-class="transition duration-100 ease-in"
-          leave-from-class="opacity-100"
-          leave-to-class="opacity-0"
-        >
-          <ListboxOptions
-            class="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10"
-          >
-            <ListboxOption
-              v-slot="{ active, selected }"
-              v-for="asset in avatarAssets[key]"
-              :key="asset"
-              :value="asset"
-              as="template"
-            >
-              <li
-                :class="[
-                  active ? 'bg-amber-100 text-amber-900' : 'text-gray-900',
-                  'relative cursor-default select-none py-2 pl-10 pr-4',
-                ]"
-              >
-                <span
-                  class="capitalize"
-                  :class="[
-                    selected ? 'font-medium' : 'font-normal',
-                    'block truncate',
-                  ]"
-                  >{{ asset?.split("_").slice(1).join(" ") || "None"}}</span
-                >
-                <span
-                  v-if="selected"
-                  class="absolute inset-y-0 left-0 flex items-center pl-3 text-amber-600"
-                >
-                  <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                </span>
-              </li>
-            </ListboxOption>
-          </ListboxOptions>
-        </transition>
-      </div>
-    </Listbox>
+                  <transition leave-active-class="transition duration-100 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <ListboxOptions
+                      class="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
+                      <ListboxOption v-slot="{ active, selected }" v-for="asset in avatarAssets[key]" :key="asset"
+                        :value="asset" as="template">
+                        <li :class="[
+                          active ? 'bg-amber-100 text-amber-900' : 'text-gray-900',
+                          'relative cursor-default select-none py-2 pl-10 pr-4',
+                        ]">
+                          <span class="capitalize" :class="[
+                            selected ? 'font-medium' : 'font-normal',
+                            'block truncate',
+                          ]">{{ asset?.split("_").slice(1).join(" ") || "None" }}</span>
+                          <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-amber-600">
+                            <CheckIcon class="h-5 w-5" aria-hidden="true" />
+                          </span>
+                        </li>
+                      </ListboxOption>
+                    </ListboxOptions>
+                  </transition>
+                </div>
+              </Listbox>
 
 
-            <button @click="changeClothingIdx(key, 1)" class="text-slate-700 pl-2 pr-2 hover:bg-slate-200 m-0 h-full join-item">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
+              <button @click="changeClothingIdx(key, 1)"
+                class="text-slate-700 pl-2 pr-2 hover:bg-slate-200 m-0 h-full join-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                  <path fill-rule="evenodd"
+                    d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z"
+                    clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
           </div>
           <template v-for="(_v, cIdx) in partsNrOfColors[key]" :key="cIdx">
             <div>
 
-              <input type="checkbox" @input="onCustomColorActiveChanged(key, cIdx, $event.target.checked)"
+              <!-- <input type="checkbox" @input="onCustomColorActiveChanged(key, cIdx, $event.target.checked)"
                 v-model="customColorsIsActive[key][cIdx]">
               <div
                 class="has-[:disabled]:outline-slate-700/40 bg-transparent inline-block m-2 overflow-hidden rounded-full disabled:size-1 size-7 outline-offset-2 outline-2 outline outline-slate-700">
                 <input :disabled="!customColorsIsActive[key][cIdx]"
                   class="disabled:invisible size-[200%] m-[-50%] cursor-pointer" type="color"
                   @input="onColorPicked(key, cIdx, $event.target.value)" v-model="currentColorSettings[key][cIdx]">
-                  </div>
+                </div> -->
+              <div class="">
+                <!-- <input type="checkbox" class="checkbox join-item" v-model="customColorsIsActive[key][cIdx]" @change="onCustomColorActiveChanged(key, cIdx, customColorsIsActive[key][cIdx])"> -->
+                <!-- <button class="btn btn-xs p-0 join-item" @click="customColorsIsActive[key][cIdx] = !customColorsIsActive[key][cIdx]; onCustomColorActiveChanged(key, cIdx, customColorsIsActive[key][cIdx])">
+                    <svg v-if="customColorsIsActive[key][cIdx]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+</svg>
+
+<svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+</svg>
+
+
+</button> -->
+                <button class="btn btn-xs btn-circle btn-outline join-item"
+                  :style="{ 'background': customColorsIsActive[key][cIdx] ? currentColorSettings[key][cIdx] : 'transparent' }"
+                  @click="openPopupParts($event, key, cIdx)">
+                  <svg v-if="!customColorsIsActive[key][cIdx]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                    fill="currentColor" class="size-5">
+                    <path fill-rule="evenodd"
+                      d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l14.5 14.5a.75.75 0 1 0 1.06-1.06l-1.745-1.745a10.029 10.029 0 0 0 3.3-4.38 1.651 1.651 0 0 0 0-1.185A10.004 10.004 0 0 0 9.999 3a9.956 9.956 0 0 0-4.744 1.194L3.28 2.22ZM7.752 6.69l1.092 1.092a2.5 2.5 0 0 1 3.374 3.373l1.091 1.092a4 4 0 0 0-5.557-5.557Z"
+                      clip-rule="evenodd" />
+                    <path
+                      d="m10.748 13.93 2.523 2.523a9.987 9.987 0 0 1-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 0 1 0-1.186A10.007 10.007 0 0 1 2.839 6.02L6.07 9.252a4 4 0 0 0 4.678 4.678Z" />
+                  </svg>
+                </button>
               </div>
+
+            </div>
           </template>
-        <!-- </div> -->
+          <!-- </div> -->
         </template>
       </template>
+      <PopUp ref="popupParts" class="bg-white rounded-xl">
+        <Vue3ColorPicker v-model="currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx]"
+          @update:model-value="onColorPicked(popupPartsKeys!.part, popupPartsKeys!.cIdx, currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx])"
+          mode="solid" inputType="RGB" type="HEX" :showColorList="false" :showAlpha="false" :showEyeDrop="false"
+          :showInputMenu="false" :showInputSet="false" />
+
+        <label class="label cursor-pointer">
+          <span class="label-text">Color active</span>
+          <input type="checkbox" class="toggle"
+            :style="{ 'background-color': customColorsIsActive[popupPartsKeys!.part][popupPartsKeys!.cIdx] ? currentColorSettings[popupPartsKeys!.part][popupPartsKeys!.cIdx] : 'grey' }"
+            v-model="customColorsIsActive[popupPartsKeys!.part][popupPartsKeys!.cIdx]"
+            @change="onCustomColorActiveChanged(popupPartsKeys!.part, popupPartsKeys!.cIdx, customColorsIsActive[popupPartsKeys!.part][popupPartsKeys!.cIdx])">
+        </label>
+
+      </PopUp>
     </div>
+
     <div class="flex gap-4 mt-6">
       <button class="p-3 text-white rounded-xl bg-slate-800" @click="saveAvatarSettingsToStorage">save</button>
       <button class="p-3 text-white rounded-xl bg-slate-800" @click="loadAvatarFromStorage">load</button>
     </div>
-  </div>
+  </UIOverlay>
+
   <div class="absolute top-0 right-0 z-50 h-screen p-10 overflow-y-scroll">
     <pre class="text-xs">{{ currentColorSettings }}</pre>
     <pre class="text-xs">{{ currentAvatarSettings }}</pre>
   </div>
+
   <a-scene ref="sceneTag" style="width: 100vw; height: 100vh;" cursor="fuse:false; rayOrigin:mouse;"
     raycaster="objects: .clickable" xr-mode-ui="enabled: false;">
     <!-- <a-light id="dirlight" intensity="1" light="castShadow:true;type:directional" position="1 1 1"></a-light> -->
@@ -287,8 +361,8 @@ function changeClothingIdx(partType: keyof typeof avatarAssets, offset: number) 
               <template v-for="cIdx in partsNrOfColors[key]" :key="cIdx">
                 <input type="color" v-model="modelSetting.colors[cIdx - 1]">
               </template>
-            </div>
-          </Teleport> -->
+    </div>
+    </Teleport> -->
           <template v-if="skinParts.includes(key)">
             <a-gltf-model make-gltf-swappable
               :src="`#${key}-${avatarAssets[key as keyof typeof avatarAssets].indexOf(modelSetting.model)}`"
@@ -308,9 +382,7 @@ function changeClothingIdx(partType: keyof typeof avatarAssets, offset: number) 
 </template>
 
 <style scoped>
-
 .text-capitalize::first-letter {
   text-transform: capitalize;
 }
-
 </style>
