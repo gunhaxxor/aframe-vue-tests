@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { type Ref, ref, computed } from 'vue';
-import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
+import { ref, computed, onMounted } from 'vue';
 
-import { isVR } from '@/composables/utils'
+import { oculusButtons } from '@/composables/utils'
 
 import EmojiSelf from '@/components/EmojiSelf.vue';
 import SpriteRender from '@/components/SpriteRenderer.vue'
 
 import {
   Listbox,
-  ListboxLabel,
   ListboxButton,
   ListboxOptions,
   ListboxOption,
 } from '@headlessui/vue'
-import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 
 type Tuple = [number, number]
 
@@ -57,21 +54,18 @@ function emitChange() {
   emit('change', selectedCoords.value, active.value)
 }
 
-// const coordsSplit = computed(() => {
-//   let coordsCopy = [...props.coords]
-//   let arr: Array<Array<Tuple>> = []
-//   while (coordsCopy.length) {
-//     arr.push(coordsCopy.splice(0, props.columns))
-//   }
-//   return arr
-// })
+const leftHand = ref<HTMLElement | null>(null)
+onMounted(() => {
+  leftHand.value = document.getElementById('tp-aframe-hand-left')
+  console.log(leftHand.value)
+})
 
 </script>
 
 <template>
   <div>
 
-    <!-- #region UI monitor -->
+    <!-- #region Emoji picker for monitor -->
     <!-- HeadlessUI Listbox -->
     <Teleport to="#tp-ui">
       <div class="w-auto">
@@ -100,12 +94,9 @@ function emitChange() {
     </Teleport>
     <!-- #endregion -->
 
-    <Teleport to="#tp-aframe-camera">
-      <EmojiSelf :sheet-url="sheetUrl" :coords="selectedCoords" :active="active" />
-    </Teleport>
-
-    <Teleport :to="isVR ? '#tp-aframe-hand-left-a-down' : '#tp-aframe-camera'">
-      <a-entity position="0 0 -0.5" mesh-ui-block="backgroundOpacity: 0.2; contentDirection: column; fontSize: 0.03;"
+    <!-- #region Emoji picker for VR/hand controls -->
+    <Teleport v-if="oculusButtons.x" to="#tp-aframe-hand-left">
+      <a-entity position="0 0 0" mesh-ui-block="backgroundOpacity: 0.2; contentDirection: column; fontSize: 0.03;"
         class="">
         <a-entity v-for="(coordsGroup, iCg) in coords" :key="iCg"
           mesh-ui-block="backgroundOpacity: 0; contentDirection: row; textAlign: left;">
@@ -122,6 +113,11 @@ function emitChange() {
           </template>
         </a-entity>
       </a-entity>
+    </Teleport>
+    <!-- #endregion -->
+
+    <Teleport to="#tp-aframe-camera">
+      <EmojiSelf :sheet-url="sheetUrl" :coords="selectedCoords" :active="active" />
     </Teleport>
 
   </div>

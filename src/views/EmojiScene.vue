@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { type Ref, ref } from 'vue';
+import { type Ref, ref, onMounted, onUnmounted } from 'vue';
 import sponzaUrl from '@/assets/sponza.glb?url'
 import { type DetailEvent, THREE, type Scene } from 'aframe';
-import { isVR } from '@/composables/utils'
+import { isVR, oculusButtons, oculusHandSimulator, simulateOculus } from '@/composables/utils'
 
 import UIOverlay from '@/components/UIOverlay.vue';
 import EmojiTeleport from '@/views/teleports/EmojiTeleport.vue'
@@ -28,7 +28,8 @@ function setEmojiSelf(coords: Tuple, active: boolean) {
   emojiActiveOther.value = active
 }
 
-const oculusButtons = ref({ 'a-left': false })
+// Simulate Oculus hand controls
+simulateOculus()
 
 </script>
 
@@ -50,14 +51,32 @@ const oculusButtons = ref({ 'a-left': false })
     <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
     <a-entity id="tp-aframe-camera" camera="active: true" look-controls wasd-controls position="9 1.6 0"
       rotation="90 190 90">
+
+      <!-- Simulate hands, for dev purposes when no headset is available -->
+      <template v-if="oculusHandSimulator.simulate">
+        <template v-if="oculusHandSimulator['hands-active']">
+          <a-entity id="tp-aframe-hand-left" position="-0.4 -0.2 -0.5">
+            <a-box scale="0.05 0.05 0.1" opacity="0.25"></a-box>
+          </a-entity>
+          <a-entity id="tp-aframe-hand-right" position="0.4 -0.2 -0.5">
+            <a-box scale="0.05 0.05 0.1" opacity="0.25"></a-box>
+          </a-entity>
+        </template>
+      </template>
+
     </a-entity>
 
     <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
-    <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left" @abuttondown="oculusButtons['a-left'] = true"
-      @abuttonup="oculusButtons['a-left'] = false">
-      <a-entity v-if="oculusButtons['a-left']" id="tp-aframe-hand-left-a-down"></a-entity>
-    </a-entity>
-    <a-entity id="tp-aframe-hand-right" oculus-touch-controls="hand: right"></a-entity>
+    <template v-if="!oculusHandSimulator.simulate">
+      <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left" @xbuttondown="oculusButtons['x'] = true"
+        @xbuttonup="oculusButtons['x'] = false">
+
+        <a-entity v-if="oculusButtons['x']" id="tp-aframe-hand-x-down">
+          <a-sphere scale="0.1 0.1 0.1"></a-sphere>
+        </a-entity>
+      </a-entity>
+      <a-entity id="tp-aframe-hand-right" oculus-touch-controls="hand: right"></a-entity>
+    </template>
 
     <!-- #region Misc demo stuff -->
 
