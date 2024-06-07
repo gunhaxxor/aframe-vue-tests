@@ -13,16 +13,16 @@ export function simulateOculus() {
         }
         if (oculusHandSimulator.value['hands-active']) {
             if (e.key === 'a') {
-                oculusButtons.value.x = true
+                oculusButtons.value.a = true
             }
             if (e.key === 'b') {
-                oculusButtons.value.x = true
+                oculusButtons.value.b = true
             }
             if (e.key === 'x') {
                 oculusButtons.value.x = true
             }
             if (e.key === 'y') {
-                oculusButtons.value.x = true
+                oculusButtons.value.y = true
             }
         }
     })
