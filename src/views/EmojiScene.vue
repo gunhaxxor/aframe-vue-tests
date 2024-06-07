@@ -46,6 +46,16 @@ simulateOculus()
 
     <a-assets>
       <a-asset-item id="sponza" :src="sponzaUrl"></a-asset-item>
+      <a-asset-item id="hand-control-left-obj"
+        src="https://cdn.aframe.io/controllers/oculus/oculus-touch-controller-left.obj"></a-asset-item>
+      <a-asset-item id="hand-control-left-mtl"
+        src="https://cdn.aframe.io/controllers/oculus/oculus-touch-controller-left.mtl"></a-asset-item>
+      <a-asset-item id="hand-control-right-obj"
+        src="https://cdn.aframe.io/controllers/oculus/oculus-touch-controller-right.obj"></a-asset-item>
+      <a-asset-item id="hand-control-right-mtl"
+        src="https://cdn.aframe.io/controllers/oculus/oculus-touch-controller-right.mtl"></a-asset-item>
+
+
     </a-assets>
 
     <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
@@ -56,10 +66,12 @@ simulateOculus()
       <template v-if="oculusHandSimulator.simulate">
         <template v-if="oculusHandSimulator['hands-active']">
           <a-entity id="tp-aframe-hand-left" position="-0.4 -0.2 -0.5">
-            <a-box scale="0.05 0.05 0.1" opacity="0.25"></a-box>
+            <!-- <a-box scale="0.05 0.05 0.1" opacity="0.25"></a-box> -->
+            <a-entity obj-model="obj: #hand-control-left-obj; mtl: #hand-control-left-mtl"></a-entity>
           </a-entity>
           <a-entity id="tp-aframe-hand-right" position="0.4 -0.2 -0.5">
-            <a-box scale="0.05 0.05 0.1" opacity="0.25"></a-box>
+            <!-- <a-box scale="0.05 0.05 0.1" opacity="0.25"></a-box> -->
+            <a-entity obj-model="obj: #hand-control-right-obj; mtl: #hand-control-right-mtl"></a-entity>
           </a-entity>
         </template>
       </template>
