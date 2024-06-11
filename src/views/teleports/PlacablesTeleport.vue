@@ -50,13 +50,13 @@ type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3, rotat
 
 const currentlyMovedObject = shallowRef<PlaceableObject | undefined>();
 const currentlySelectedObjectId = ref<UUID | undefined>();
-const currentlySelectedObject = ref<PlacedObjectList[number] | undefined>()
+// const currentlySelectedObject = ref<PlacedObjectList[number] | undefined>()
 const currentlyMovedEntity = ref<Entity | null>(null);
 const placedObjects = reactive<PlacedObjectList>([
   // { type: 'PdfEntity', src: '/documents/smallpdf_sample.pdf', uuid: crypto.randomUUID(), position: [1, 1.8, -2], rotation: [0, 0, 0] },
   // { type: 'PdfEntity', src: '/documents/compressed.tracemonkey-pldi-09.pdf', uuid: crypto.randomUUID(), position: [-2, 1.8, -2], rotation: [0, 0, 0] },
 ]);
-const editedObject = computed(() => {
+const currentlySelectedObject = computed(() => {
   return placedObjects.find(obj => obj.uuid === currentlySelectedObjectId.value)
 })
 
@@ -85,7 +85,7 @@ function createPlaceableObject(type: placeableAssetTypes, src: string) {
 }
 
 function repositionSelectedObject() {
-  const idx = placedObjects.findIndex(obj => obj.uuid === editedObject.value?.uuid);
+  const idx = placedObjects.findIndex(obj => obj.uuid === currentlySelectedObject.value?.uuid);
   if (idx < 0) return;
   const [obj] = placedObjects.splice(idx, 1);
   currentlyMovedObject.value = obj;
@@ -95,33 +95,8 @@ function selectEntity(uuid: UUID, evt: DetailEvent<{ cursorEl: Entity, intersect
   console.log(uuid);
   console.log(evt);
   currentlySelectedObjectId.value = uuid;
-  currentlySelectedObject.value = placedObjects.find(obj => obj.uuid === currentlySelectedObjectId.value)
-  const rot = editedObject.value?.rotation;
-  if (!rot) {
-    console.log(rot);
-    return;
-  }
-  yaw.value = rot[1];
-  pitch.value = rot[0];
-  roll.value = rot[2];
-
   updatePaneBySelected()
-
 }
-const yaw = ref<number>(0);
-const pitch = ref<number>(0);
-const roll = ref<number>(0);
-
-watch([yaw, pitch, roll], ([newYaw, newPitch, newRoll]) => {
-  if (!currentlySelectedObject.value) {
-    return;
-  }
-  currentlySelectedObject.value.rotation = [newPitch, newYaw, newRoll];
-  if (paneParams.value) {
-    paneParams.value.Rotation = new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
-    pane.value?.refresh()
-  }
-})
 
 const paneContainer = ref(null)
 const pane = ref<Pane | undefined>(undefined)
@@ -143,7 +118,7 @@ function updatePaneBySelected() {
 watch(paneParams, (newV) => {
   if (!currentlySelectedObject.value) { return }
   if (newV) {
-    currentlySelectedObject.value.position = newV.Position
+    currentlySelectedObject.value.position = newV.Position.clone()
     currentlySelectedObject.value.rotation = [newV.Rotation.x, newV.Rotation.y, newV.Rotation.z]
   }
 }, { deep: true })
@@ -173,12 +148,6 @@ const unsubscribe = bus.on((e) => {
         @click="createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')">place photo</button>
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
         @click="createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')">Place pdf</button>
-      <div v-if="currentlySelectedObjectId">
-        <input type="range" min="-180" max="180" v-model.number="yaw">
-        <input type="range" min="-90" max="90" v-model.number="pitch">
-        <input type="range" min="-180" max="180" v-model.number="roll">
-        <button @click="repositionSelectedObject">Place again</button>
-      </div>
       <!-- <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre> -->
       <pre class="text-xs bg-white/40">{{ placedObjects }}</pre>
     </Teleport>
