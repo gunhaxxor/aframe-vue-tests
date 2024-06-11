@@ -67,7 +67,7 @@ onMounted(() => {
 
     <!-- #region Emoji picker for monitor -->
     <!-- HeadlessUI Listbox -->
-    <Teleport to="#tp-ui">
+    <Teleport to="#tp-ui-left">
       <div class="w-auto">
         <Listbox v-model="selectedCoords" @update:model-value="onEmojiSelected">
           <div class="relative mt-1">

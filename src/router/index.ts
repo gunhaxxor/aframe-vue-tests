@@ -4,6 +4,11 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/main',
+      name: 'main',
+      component: () => import('@/views/MainScene.vue'),
+    },
+    {
       path: '/',
       redirect: {name: 'vr1'}
     },

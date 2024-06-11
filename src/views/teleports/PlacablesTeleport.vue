@@ -1,0 +1,211 @@
+<script setup lang="ts">
+
+import { Pane } from 'tweakpane';
+
+import { computed, ref, onMounted, shallowReactive, reactive, shallowRef, watch } from 'vue';
+import { useEventBus } from '@vueuse/core'
+import { clickKey, intersectionToTransform } from '@/composables/utils'
+
+import { type DetailEvent, THREE, type Entity, type Scene } from 'aframe';
+import PdfEntity from '@/components/PdfEntity.vue';
+
+defineOptions({
+  components: { PdfEntity },
+})
+
+function arrToCoordString(arr: Array<unknown>) {
+  const constructedString = arr.join(' ');
+  return constructedString;
+}
+
+function threeRotationToAframeRotation(threeRotation: THREE.Vector3Tuple): THREE.Vector3Tuple {
+  return [
+    THREE.MathUtils.radToDeg(threeRotation[0]),
+    THREE.MathUtils.radToDeg(threeRotation[1]),
+    THREE.MathUtils.radToDeg(threeRotation[2]),
+  ]
+}
+
+function quaternionToAframeRotation(quaternion: THREE.Quaternion): THREE.Vector3Tuple {
+  const euler = new THREE.Euler().reorder('YXZ').setFromQuaternion(quaternion);
+  const arr = euler.toArray() as THREE.Vector3Tuple;
+  return threeRotationToAframeRotation(arr);
+}
+
+
+function onClick(evt: DetailEvent<{ cursorEl: Entity, intersection: THREE.Intersection }>) {
+  const rayDirection = evt.detail.cursorEl.components.raycaster.raycaster.ray.direction;
+  // console.log('click!', evt);
+
+  placeMovedObject({ intersection: evt.detail.intersection, rayDirection });
+  return;
+}
+
+type UUID = ReturnType<typeof crypto.randomUUID>
+type RayIntersectionData = { intersection: THREE.Intersection, rayDirection: THREE.Vector3 };
+type placeableAssetTypes = `a-${'image' | 'sphere'}` | 'PdfEntity'; // | typeof PdfEntity;
+type PlaceableObject = { uuid: UUID, type: placeableAssetTypes, src: string };
+// type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3Tuple, rotation: THREE.Vector3Tuple }>
+type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3, rotation: THREE.Vector3Tuple }>
+
+const currentlyMovedObject = shallowRef<PlaceableObject | undefined>();
+const currentlySelectedObjectId = ref<UUID | undefined>();
+const currentlySelectedObject = ref<PlacedObjectList[number] | undefined>()
+const currentlyMovedEntity = ref<Entity | null>(null);
+const placedObjects = reactive<PlacedObjectList>([
+  // { type: 'PdfEntity', src: '/documents/smallpdf_sample.pdf', uuid: crypto.randomUUID(), position: [1, 1.8, -2], rotation: [0, 0, 0] },
+  // { type: 'PdfEntity', src: '/documents/compressed.tracemonkey-pldi-09.pdf', uuid: crypto.randomUUID(), position: [-2, 1.8, -2], rotation: [0, 0, 0] },
+]);
+const editedObject = computed(() => {
+  return placedObjects.find(obj => obj.uuid === currentlySelectedObjectId.value)
+})
+
+
+const placedObjectsEntity = ref<Entity>();
+function placeMovedObject(cursorObject: THREE.Object3D) {
+  if (!currentlyMovedObject.value) return;
+  const position = cursorObject.position
+  const rotation = quaternionToAframeRotation(cursorObject.quaternion);
+  placedObjects.push({ ...currentlyMovedObject.value, position, rotation });
+  selectEntity(currentlyMovedObject.value.uuid, undefined)
+  // currentlySelectedObjectId.value = currentlyMovedObject.value.uuid
+  currentlyMovedObject.value = undefined;
+
+}
+
+function createPlaceableObject(type: placeableAssetTypes, src: string) {
+  console.log("Place photo", type, src)
+  const uuid = crypto.randomUUID();
+  const newPlaceableObject: PlaceableObject = {
+    uuid,
+    src,
+    type
+  }
+  currentlyMovedObject.value = newPlaceableObject
+}
+
+function repositionSelectedObject() {
+  const idx = placedObjects.findIndex(obj => obj.uuid === editedObject.value?.uuid);
+  if (idx < 0) return;
+  const [obj] = placedObjects.splice(idx, 1);
+  currentlyMovedObject.value = obj;
+}
+
+function selectEntity(uuid: UUID, evt: DetailEvent<{ cursorEl: Entity, intersection: THREE.Intersection, mouseEvent: MouseEvent }> | undefined) {
+  console.log(uuid);
+  console.log(evt);
+  currentlySelectedObjectId.value = uuid;
+  currentlySelectedObject.value = placedObjects.find(obj => obj.uuid === currentlySelectedObjectId.value)
+  const rot = editedObject.value?.rotation;
+  if (!rot) {
+    console.log(rot);
+    return;
+  }
+  yaw.value = rot[1];
+  pitch.value = rot[0];
+  roll.value = rot[2];
+
+  updatePaneBySelected()
+
+}
+const yaw = ref<number>(0);
+const pitch = ref<number>(0);
+const roll = ref<number>(0);
+
+watch([yaw, pitch, roll], ([newYaw, newPitch, newRoll]) => {
+  if (!currentlySelectedObject.value) {
+    return;
+  }
+  currentlySelectedObject.value.rotation = [newPitch, newYaw, newRoll];
+  if (paneParams.value) {
+    paneParams.value.Rotation = new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
+    pane.value?.refresh()
+  }
+})
+
+const paneContainer = ref(null)
+const pane = ref<Pane | undefined>(undefined)
+const paneParams = ref<{ 'Position': THREE.Vector3, 'Rotation': THREE.Vector3 } | undefined>(undefined)
+function updatePaneBySelected() {
+  pane.value?.dispose();
+  if (paneContainer.value && currentlySelectedObject.value) {
+    pane.value = new Pane({ container: paneContainer.value });
+    pane.value.title = currentlySelectedObject.value.src
+    paneParams.value = {
+      'Position': currentlySelectedObject.value.position,
+      'Rotation': new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
+    };
+    pane.value?.addBinding(paneParams.value, 'Position');
+    pane.value?.addBinding(paneParams.value, 'Rotation');
+  }
+}
+
+watch(paneParams, (newV) => {
+  if (!currentlySelectedObject.value) { return }
+  if (newV) {
+    currentlySelectedObject.value.position = newV.Position
+    currentlySelectedObject.value.rotation = [newV.Rotation.x, newV.Rotation.y, newV.Rotation.z]
+  }
+}, { deep: true })
+
+const bus = useEventBus(clickKey)
+const unsubscribe = bus.on((e) => {
+  if (e.cursorObject) {
+    placeMovedObject(e.cursorObject)
+  }
+})
+
+
+// const props = defineProps<{
+// }>()
+
+// const emit = defineEmits<{
+// }>()
+
+</script>
+
+<template>
+  <div>
+
+    <!-- #region Place objects -->
+    <Teleport to="#tp-ui-left">
+      <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
+        @click="createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')">place photo</button>
+      <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
+        @click="createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')">Place pdf</button>
+      <div v-if="currentlySelectedObjectId">
+        <input type="range" min="-180" max="180" v-model.number="yaw">
+        <input type="range" min="-90" max="90" v-model.number="pitch">
+        <input type="range" min="-180" max="180" v-model.number="roll">
+        <button @click="repositionSelectedObject">Place again</button>
+      </div>
+      <!-- <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre> -->
+      <pre class="text-xs bg-white/40">{{ placedObjects }}</pre>
+    </Teleport>
+    <!-- #endregion -->
+
+    <!-- #region Tweakpane UI -->
+    <Teleport to="#tp-ui-right">
+      <div ref="paneContainer"></div>
+    </Teleport>
+    <!-- #endregion -->
+
+    <Teleport to="#tp-aframe-cursor">
+      <component ref="currentlyMovedEntity" v-if="currentlyMovedObject" :is="currentlyMovedObject.type"
+        :src="currentlyMovedObject.src" />
+    </Teleport>
+
+    <Teleport to="#tp-aframe-scene">
+      <a-entity ref="placedObjectsEntity">
+        <component v-for="placedObject in placedObjects" :key="placedObject.type"
+          @click="selectEntity(placedObject.uuid, $event)" class="clickable"
+          :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid}; color: #ff00ff;`"
+          :is="placedObject.type" :src="placedObject.src" :position="placedObject.position"
+          :rotation="arrToCoordString(placedObject.rotation)" />
+      </a-entity>
+    </Teleport>
+
+  </div>
+</template>
+
+<style scoped></style>

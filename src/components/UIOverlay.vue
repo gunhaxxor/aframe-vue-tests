@@ -2,13 +2,22 @@
 </script>
 
 <template>
-  <div id="tp-ui">
-    <slot />
+  <div id="ui" class="flex justify-between p-2">
+    <div id="tp-ui-left" class="">
+      <slot name="left" />
+    </div>
+    <div id="tp-ui-center" class="">
+      <slot name="center" />
+    </div>
+    <div id="tp-ui-right" class="">
+      <div id="tp-tweakpane"></div>
+      <slot name="right" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-#tp-ui {
+#ui {
   position: absolute;
   top: 0;
   left: 0;
@@ -18,8 +27,8 @@
   pointer-events: none;
 }
 
-#tp-ui>* {
-  display: inline-block;
+#ui>div>* {
+  /* display: inline-block; */
   pointer-events: all;
 }
 </style>
