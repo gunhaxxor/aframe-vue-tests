@@ -110,16 +110,22 @@ function updatePaneBySelected() {
       'Position': currentlySelectedObject.value.position,
       'Rotation': new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
     };
-    pane.value?.addBinding(paneParams.value, 'Position');
-    pane.value?.addBinding(paneParams.value, 'Rotation');
+    pane.value?.addBinding(paneParams.value, 'Position', { step: 0.1 });
+    pane.value?.addBinding(paneParams.value, 'Rotation', { step: 1 });
   }
 }
 
-watch(paneParams, (newV) => {
+watch(() => paneParams.value?.Rotation, (newV) => {
   if (!currentlySelectedObject.value) { return }
   if (newV) {
-    currentlySelectedObject.value.position = newV.Position.clone()
-    currentlySelectedObject.value.rotation = [newV.Rotation.x, newV.Rotation.y, newV.Rotation.z]
+    currentlySelectedObject.value.rotation = [newV.x, newV.y, newV.z]
+  }
+}, { deep: true })
+
+watch(() => paneParams.value?.Position, (newV) => {
+  if (!currentlySelectedObject.value) { return }
+  if (newV) {
+    currentlySelectedObject.value.position = newV.clone()
   }
 }, { deep: true })
 
