@@ -3,13 +3,13 @@
 
 <template>
   <div id="ui" class="flex justify-between p-2">
-    <div id="tp-ui-left" class="">
+    <div id="tp-ui-left" class="flex flex-col gap-1">
       <slot name="left" />
     </div>
     <div id="tp-ui-center" class="">
       <slot name="center" />
     </div>
-    <div id="tp-ui-right" class="">
+    <div id="tp-ui-right" class="flex flex-col gap-1">
       <div id="tp-tweakpane"></div>
       <slot name="right" />
     </div>

@@ -103,6 +103,7 @@ const pane = ref<Pane | undefined>(undefined)
 const paneParams = ref<{ 'Position': THREE.Vector3, 'Rotation': THREE.Vector3 } | undefined>(undefined)
 function updatePaneBySelected() {
   pane.value?.dispose();
+  pane.value = undefined
   if (paneContainer.value && currentlySelectedObject.value) {
     pane.value = new Pane({ container: paneContainer.value });
     pane.value.title = currentlySelectedObject.value.src
@@ -110,8 +111,8 @@ function updatePaneBySelected() {
       'Position': currentlySelectedObject.value.position,
       'Rotation': new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
     };
-    pane.value?.addBinding(paneParams.value, 'Position', { step: 0.1 });
-    pane.value?.addBinding(paneParams.value, 'Rotation', { step: 1 });
+    pane.value?.addBinding(paneParams.value, 'Position', { step: 0.01 });
+    pane.value?.addBinding(paneParams.value, 'Rotation', { step: 1, min: -180, max: 180 });
   }
 }
 
@@ -131,6 +132,10 @@ watch(() => paneParams.value?.Position, (newV) => {
 
 const bus = useEventBus(clickKey)
 const unsubscribe = bus.on((e) => {
+  if (currentlySelectedObject.value) {
+    currentlySelectedObjectId.value = undefined
+    updatePaneBySelected()
+  }
   if (e.cursorObject) {
     placeMovedObject(e.cursorObject)
   }
@@ -155,7 +160,7 @@ const unsubscribe = bus.on((e) => {
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
         @click="createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')">Place pdf</button>
       <!-- <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre> -->
-      <pre class="text-xs bg-white/40">{{ placedObjects }}</pre>
+      <!-- <pre class="text-xs bg-white/40">{{ placedObjects }}</pre> -->
     </Teleport>
     <!-- #endregion -->
 
