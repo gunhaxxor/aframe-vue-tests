@@ -180,7 +180,7 @@ const unsubscribe = bus.on((e) => {
         @click="createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')">place photo</button>
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
         @click="createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')">Place pdf</button>
-      <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre>
+      <!-- <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre> -->
       <!-- <pre class="text-xs bg-white/40">{{ placedObjects }}</pre> -->
     </Teleport>
     <!-- #endregion -->
