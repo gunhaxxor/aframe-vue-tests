@@ -2,7 +2,7 @@
 
 import { Pane } from 'tweakpane';
 
-import { computed, ref, onMounted, shallowReactive, reactive, shallowRef, watch } from 'vue';
+import { computed, ref, onMounted, shallowReactive, reactive, shallowRef, watch, nextTick } from 'vue';
 import { useEventBus } from '@vueuse/core'
 import { clickKey, intersectionToTransform } from '@/composables/utils'
 
@@ -46,12 +46,13 @@ type RayIntersectionData = { intersection: THREE.Intersection, rayDirection: THR
 type placeableAssetTypes = `a-${'image' | 'sphere'}` | 'PdfEntity'; // | typeof PdfEntity;
 type PlaceableObject = { uuid: UUID, type: placeableAssetTypes, src: string };
 // type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3Tuple, rotation: THREE.Vector3Tuple }>
-type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3, rotation: THREE.Vector3Tuple }>
+type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3, positionLocal: THREE.Vector3, rotation: THREE.Vector3Tuple }>
 
 const currentlyMovedObject = shallowRef<PlaceableObject | undefined>();
 const currentlySelectedObjectId = ref<UUID | undefined>();
 // const currentlySelectedObject = ref<PlacedObjectList[number] | undefined>()
 const currentlyMovedEntity = ref<Entity | null>(null);
+const currentlySelectedEntity = ref<Entity | null>(null);
 const placedObjects = reactive<PlacedObjectList>([
   // { type: 'PdfEntity', src: '/documents/smallpdf_sample.pdf', uuid: crypto.randomUUID(), position: [1, 1.8, -2], rotation: [0, 0, 0] },
   // { type: 'PdfEntity', src: '/documents/compressed.tracemonkey-pldi-09.pdf', uuid: crypto.randomUUID(), position: [-2, 1.8, -2], rotation: [0, 0, 0] },
@@ -65,10 +66,10 @@ const placedObjectsEntity = ref<Entity>();
 function placeMovedObject(cursorObject: THREE.Object3D) {
   if (!currentlyMovedObject.value) return;
   const position = cursorObject.position
+  const positionLocal = new THREE.Vector3()
   const rotation = quaternionToAframeRotation(cursorObject.quaternion);
-  placedObjects.push({ ...currentlyMovedObject.value, position, rotation });
+  placedObjects.push({ ...currentlyMovedObject.value, position, positionLocal, rotation });
   selectEntity(currentlyMovedObject.value.uuid, undefined)
-  // currentlySelectedObjectId.value = currentlyMovedObject.value.uuid
   currentlyMovedObject.value = undefined;
 
 }
@@ -94,13 +95,17 @@ function repositionSelectedObject() {
 function selectEntity(uuid: UUID, evt: DetailEvent<{ cursorEl: Entity, intersection: THREE.Intersection, mouseEvent: MouseEvent }> | undefined) {
   console.log(uuid);
   console.log(evt);
+  console.log("Selected entity", currentlySelectedEntity)
   currentlySelectedObjectId.value = uuid;
   updatePaneBySelected()
+  nextTick(() => {
+    mergeLocalAndWorldPositions()
+  })
 }
 
 const paneContainer = ref(null)
 const pane = ref<Pane | undefined>(undefined)
-const paneParams = ref<{ 'Position': THREE.Vector3, 'Rotation': THREE.Vector3 } | undefined>(undefined)
+const paneParams = ref<{ 'Position': THREE.Vector3, 'Move local position': THREE.Vector3, 'Rotation': THREE.Vector3 } | undefined>(undefined)
 function updatePaneBySelected() {
   pane.value?.dispose();
   pane.value = undefined
@@ -109,26 +114,42 @@ function updatePaneBySelected() {
     pane.value.title = currentlySelectedObject.value.src
     paneParams.value = {
       'Position': currentlySelectedObject.value.position,
+      'Move local position': currentlySelectedObject.value.positionLocal,
       'Rotation': new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
     };
-    pane.value?.addBinding(paneParams.value, 'Position', { step: 0.01 });
-    pane.value?.addBinding(paneParams.value, 'Rotation', { step: 1, min: -180, max: 180 });
+    pane.value?.addBinding(paneParams.value, 'Position', { step: 0.01 }).on('change', (ev) => {
+      if (!currentlySelectedObject.value) { return }
+      currentlySelectedObject.value.position = ev.value.clone()
+    });
+
+    pane.value?.addBinding(paneParams.value, 'Move local position', { step: 0.01 }).on('change', (ev) => {
+      if (!currentlySelectedObject.value) { return }
+      currentlySelectedObject.value.positionLocal = ev.value.clone()
+      if (ev.last) {
+        mergeLocalAndWorldPositions()
+      }
+    });
+
+    pane.value?.addBinding(paneParams.value, 'Rotation', { step: 1, min: -180, max: 180 }).on('change', (ev) => {
+      if (!currentlySelectedObject.value) { return }
+      currentlySelectedObject.value.rotation = [ev.value.x, ev.value.y, ev.value.z]
+    });
   }
 }
 
-watch(() => paneParams.value?.Rotation, (newV) => {
+function mergeLocalAndWorldPositions() {
   if (!currentlySelectedObject.value) { return }
-  if (newV) {
-    currentlySelectedObject.value.rotation = [newV.x, newV.y, newV.z]
+  if (!currentlySelectedObject.value.positionLocal.equals(new THREE.Vector3())) {
+    const selectedEntity = document.getElementById(currentlySelectedObject.value.uuid) as Entity
+    currentlySelectedObject.value.position = selectedEntity.object3D.localToWorld(currentlySelectedObject.value.positionLocal.clone())
+    currentlySelectedObject.value.positionLocal = new THREE.Vector3()
+    if (paneParams.value) {
+      paneParams.value.Position = currentlySelectedObject.value.position
+      paneParams.value['Move local position'] = currentlySelectedObject.value.positionLocal
+      pane.value?.refresh()
+    }
   }
-}, { deep: true })
-
-watch(() => paneParams.value?.Position, (newV) => {
-  if (!currentlySelectedObject.value) { return }
-  if (newV) {
-    currentlySelectedObject.value.position = newV.clone()
-  }
-}, { deep: true })
+}
 
 const bus = useEventBus(clickKey)
 const unsubscribe = bus.on((e) => {
@@ -159,7 +180,7 @@ const unsubscribe = bus.on((e) => {
         @click="createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')">place photo</button>
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
         @click="createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')">Place pdf</button>
-      <!-- <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre> -->
+      <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre>
       <!-- <pre class="text-xs bg-white/40">{{ placedObjects }}</pre> -->
     </Teleport>
     <!-- #endregion -->
@@ -177,11 +198,18 @@ const unsubscribe = bus.on((e) => {
 
     <Teleport to="#tp-aframe-scene">
       <a-entity ref="placedObjectsEntity">
-        <component v-for="placedObject in placedObjects" :key="placedObject.type"
+        <!-- <component v-for="placedObject in placedObjects" :key="placedObject.type"
           @click="selectEntity(placedObject.uuid, $event)" class="clickable"
           :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid}; color: #ff00ff;`"
           :is="placedObject.type" :src="placedObject.src" :position="placedObject.position"
-          :rotation="arrToCoordString(placedObject.rotation)" />
+          :rotation="arrToCoordString(placedObject.rotation)" /> -->
+        <a-entity v-for="placedObject in placedObjects" :key="placedObject.type" :position="placedObject.position"
+          :rotation="arrToCoordString(placedObject.rotation)" :id="placedObject.uuid"
+          :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid}; color: #ff00ff;`">
+          <component @click="selectEntity(placedObject.uuid, $event)" class="clickable"
+            :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid};`" :is="placedObject.type"
+            :src="placedObject.src" :position="placedObject.positionLocal" />
+        </a-entity>
       </a-entity>
     </Teleport>
 
