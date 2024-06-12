@@ -4,11 +4,12 @@ import { useEventBus } from '@vueuse/core'
 
 import { type DetailEvent, THREE, type Entity, type Scene } from 'aframe';
 import sponzaUrl from '@/assets/sponza.glb?url'
-import { isVR, oculusButtons, oculusHandSimulator, simulateOculus, type RayIntersectionData, clickKey, intersectionToTransform } from '@/composables/utils'
+import { isVR, oculusButtons, oculusHandSimulator, simulateOculus, type RayIntersectionData, rayIntersectionData, clickKey } from '@/composables/utils'
 
 import UIOverlay from '@/components/UIOverlay.vue';
 import EmojiTeleport from '@/views/teleports/EmojiTeleport.vue'
 import PlacablesTeleport from '@/views/teleports/PlacablesTeleport.vue'
+import LaserTeleport from '@/views/teleports/LaserTeleport.vue'
 // import EmojiPicker from '@/components/EmojiPicker.vue';
 import EmojiOther from '@/components/EmojiOther.vue';
 // import EmojiSelf from '@/components/EmojiSelf.vue';
@@ -21,6 +22,7 @@ const sceneTag = ref<Scene>();
 
 const cursorEntity = ref<Entity>();
 function placeCursor(evt: DetailEvent<RayIntersectionData>) {
+  rayIntersectionData.value = evt.detail;
   const cursor = cursorEntity.value;
   if (!cursor) return;
   const transform = intersectionToTransform(evt.detail);
@@ -28,6 +30,40 @@ function placeCursor(evt: DetailEvent<RayIntersectionData>) {
   cursor.object3D.position.set(...transform.position);
   const quat = new THREE.Quaternion().fromArray(transform.rotation);
   cursor.object3D.rotation.setFromQuaternion(quat);
+}
+
+function intersectionToTransform(intersectionData: RayIntersectionData, normalOffset: number = 0.05) {
+  const { intersection, rayDirection } = intersectionData;
+  const position = intersection.point.clone();
+  const rotation = new THREE.Quaternion();
+  const normal = intersection.normal;
+  if (!normal) { console.error('no normal vector in intersection object'); return; }
+
+
+  //Rotation part
+  const fromVector = new THREE.Vector3(0, 0, 1);
+  rotation.setFromUnitVectors(fromVector, normal);
+  const euler = new THREE.Euler().reorder('YXZ').setFromQuaternion(rotation);
+  euler.z = 0;
+  // if flat placement, align with camera direction
+  if (euler.x < (-Math.PI / 2 + 0.01)) {// && euler.x > (-Math.PI / 4 - 0.01)) {
+    // const quat = new THREE.Quaternion();
+    // const cameraRot = sceneTag.value!.camera.getWorldQuaternion(quat);
+    // const eul = new THREE.Euler().reorder('YXZ').setFromQuaternion(cameraRot);
+
+    const quat = new THREE.Quaternion().setFromUnitVectors(fromVector, rayDirection.clone().negate());
+    const eul = new THREE.Euler().reorder('YXZ').setFromQuaternion(quat);
+    euler.y = eul.y;
+  }
+  const quat = new THREE.Quaternion().setFromEuler(euler);
+
+  // Position part
+  position.add(normal.clone().setLength(normalOffset));
+  position.set(...position.toArray());
+  return {
+    position: position.toArray(),
+    rotation: quat.toArray() as THREE.Vector4Tuple,
+  }
 }
 
 const bus = useEventBus(clickKey)
@@ -149,6 +185,7 @@ simulateOculus()
     :coords="[[[35, 8], [36, 37], [36, 38], [15, 8], [36, 27]], [[34, 8], [2, 8], [36, 24], [36, 25], [21, 8],], [[28, 26], [28, 20], [28, 38], [3, 16], [2, 1]]]"
     @change="setEmojiSelf" :isVR="false" :columns="5" />
   <PlacablesTeleport />
+  <LaserTeleport />
 
   <!-- #endregion -->
 
