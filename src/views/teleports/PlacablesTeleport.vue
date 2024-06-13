@@ -2,11 +2,11 @@
 
 import { Pane } from 'tweakpane';
 
-import { computed, ref, onMounted, shallowReactive, reactive, shallowRef, watch, nextTick } from 'vue';
+import { computed, ref, onMounted, reactive, shallowRef } from 'vue';
 import { useEventBus } from '@vueuse/core'
-import { clickKey, intersectionToTransform } from '@/composables/utils'
+import { clickKey } from '@/composables/utils'
 
-import { type DetailEvent, THREE, type Entity, type Scene } from 'aframe';
+import { type DetailEvent, THREE, type Entity } from 'aframe';
 import PdfEntity from '@/components/PdfEntity.vue';
 
 defineOptions({
@@ -32,21 +32,10 @@ function quaternionToAframeRotation(quaternion: THREE.Quaternion): THREE.Vector3
   return threeRotationToAframeRotation(arr);
 }
 
-
-function onClick(evt: DetailEvent<{ cursorEl: Entity, intersection: THREE.Intersection }>) {
-  const rayDirection = evt.detail.cursorEl.components.raycaster.raycaster.ray.direction;
-  // console.log('click!', evt);
-
-  placeMovedObject({ intersection: evt.detail.intersection, rayDirection });
-  return;
-}
-
 type UUID = ReturnType<typeof crypto.randomUUID>
-type RayIntersectionData = { intersection: THREE.Intersection, rayDirection: THREE.Vector3 };
 type placeableAssetTypes = `a-${'image' | 'sphere'}` | 'PdfEntity'; // | typeof PdfEntity;
 type PlaceableObject = { uuid: UUID, type: placeableAssetTypes, src: string };
-// type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3Tuple, rotation: THREE.Vector3Tuple }>
-type PlacedObjectList = Array<PlaceableObject & { position: THREE.Vector3, positionLocal: THREE.Vector3, rotation: THREE.Vector3Tuple }>
+type PlacedObjectList = Array<PlaceableObject & { scale: number, position: THREE.Vector3, positionLocal: THREE.Vector3, rotation: THREE.Vector3Tuple }>
 
 const currentlyMovedObject = shallowRef<PlaceableObject | undefined>();
 const currentlySelectedObjectId = ref<UUID | undefined>();
@@ -65,13 +54,13 @@ const currentlySelectedObject = computed(() => {
 const placedObjectsEntity = ref<Entity>();
 function placeMovedObject(cursorObject: THREE.Object3D) {
   if (!currentlyMovedObject.value) return;
+  const scale = 1;
   const position = cursorObject.position
   const positionLocal = new THREE.Vector3()
   const rotation = quaternionToAframeRotation(cursorObject.quaternion);
-  placedObjects.push({ ...currentlyMovedObject.value, position, positionLocal, rotation });
+  placedObjects.push({ ...currentlyMovedObject.value, scale, position, positionLocal, rotation });
   selectEntity(currentlyMovedObject.value.uuid, undefined)
   currentlyMovedObject.value = undefined;
-
 }
 
 function createPlaceableObject(type: placeableAssetTypes, src: string) {
@@ -92,48 +81,134 @@ function repositionSelectedObject() {
   currentlyMovedObject.value = obj;
 }
 
+function removeSelectedObject() {
+  if (!currentlySelectedObject.value) { return }
+  removeObject(currentlySelectedObject.value.uuid)
+  currentlySelectedObjectId.value = undefined
+}
+
+function removeObject(uuid: UUID) {
+  const idx = placedObjects.findIndex(obj => obj.uuid === uuid);
+  if (idx < 0) return;
+  placedObjects.splice(idx, 1);
+  updatePaneSelected()
+}
+
 function selectEntity(uuid: UUID, evt: DetailEvent<{ cursorEl: Entity, intersection: THREE.Intersection, mouseEvent: MouseEvent }> | undefined) {
   console.log(uuid);
   console.log(evt);
   console.log("Selected entity", currentlySelectedEntity)
   currentlySelectedObjectId.value = uuid;
-  updatePaneBySelected()
-  nextTick(() => {
-    mergeLocalAndWorldPositions()
-  })
+  updatePaneSelected()
 }
 
 const paneContainer = ref(null)
-const pane = ref<Pane | undefined>(undefined)
-const paneParams = ref<{ 'Position': THREE.Vector3, 'Move local position': THREE.Vector3, 'Rotation': THREE.Vector3 } | undefined>(undefined)
-function updatePaneBySelected() {
-  pane.value?.dispose();
-  pane.value = undefined
-  if (paneContainer.value && currentlySelectedObject.value) {
-    pane.value = new Pane({ container: paneContainer.value });
-    pane.value.title = currentlySelectedObject.value.src
-    paneParams.value = {
-      'Position': currentlySelectedObject.value.position,
-      'Move local position': currentlySelectedObject.value.positionLocal,
-      'Rotation': new THREE.Vector3(currentlySelectedObject.value.rotation[0], currentlySelectedObject.value.rotation[1], currentlySelectedObject.value.rotation[2])
-    };
-    pane.value?.addBinding(paneParams.value, 'Position', { step: 0.01 }).on('change', (ev) => {
-      if (!currentlySelectedObject.value) { return }
-      currentlySelectedObject.value.position = ev.value.clone()
+type PaneParams = { 'scale': number, 'positionGlobal': THREE.Vector3, 'positionLocal': THREE.Vector3, 'rotation': THREE.Vector3 }
+const pane = ref<Pane | undefined>()
+const paneParams = ref<PaneParams | undefined>()
+
+function initPaneCreate() {
+  if (paneContainer.value) {
+
+    const p = new Pane({ container: paneContainer.value })
+    p.title = "Objects in scene"
+
+    p.addButton({
+      title: 'Add image',
+    }).on('click', () => {
+      createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')
     });
 
-    pane.value?.addBinding(paneParams.value, 'Move local position', { step: 0.01 }).on('change', (ev) => {
-      if (!currentlySelectedObject.value) { return }
-      currentlySelectedObject.value.positionLocal = ev.value.clone()
-      if (ev.last) {
-        mergeLocalAndWorldPositions()
+    p.addButton({
+      title: 'Add PDF',
+    }).on('click', () => {
+      createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')
+    });
+  }
+}
+
+function updatePaneSelected() {
+
+  if (pane.value) {
+    pane.value.dispose()
+    pane.value = undefined
+  }
+
+  if (paneContainer.value) {
+    const obj = currentlySelectedObject.value
+    if (obj) {
+
+      pane.value = new Pane({ container: paneContainer.value });
+      pane.value.title = "Selected: " + obj.src
+
+      paneParams.value = {
+        'scale': obj.scale,
+        'positionGlobal': obj.position,
+        'positionLocal': obj.positionLocal,
+        'rotation': new THREE.Vector3(obj.rotation[0], obj.rotation[1], obj.rotation[2])
       }
-    });
 
-    pane.value?.addBinding(paneParams.value, 'Rotation', { step: 1, min: -180, max: 180 }).on('change', (ev) => {
-      if (!currentlySelectedObject.value) { return }
-      currentlySelectedObject.value.rotation = [ev.value.x, ev.value.y, ev.value.z]
-    });
+      // const fProperties = pane.value.addFolder({
+      //   title: 'Properties',
+      // });
+
+      pane.value.addBinding(paneParams.value, 'scale', { label: 'Scale', step: 0.01 }).on('change', (ev) => {
+        if (!currentlySelectedObject.value) { return }
+        currentlySelectedObject.value.scale = ev.value
+      });
+
+      pane.value.addBlade({
+        view: 'separator',
+      });
+
+      pane.value.addBinding(paneParams.value, 'positionGlobal', { label: 'Global position', step: 0.01 }).on('change', (ev) => {
+        if (!currentlySelectedObject.value) { return }
+        currentlySelectedObject.value.position = ev.value.clone()
+      });
+
+      pane.value.addBinding(paneParams.value, 'positionLocal', { label: 'Local position (fine tune)', step: 0.01 }).on('change', (ev) => {
+        if (!currentlySelectedObject.value) { return }
+        currentlySelectedObject.value.positionLocal = ev.value.clone()
+        if (ev.last) {
+          mergeLocalAndWorldPositions()
+        }
+      });
+
+      pane.value.addButton({
+        label: 'Reposition in scene',   // optional
+        title: 'Reposition',
+      }).on('click', () => {
+        repositionSelectedObject()
+      });
+
+      pane.value.addBlade({
+        view: 'separator',
+      });
+
+      pane.value.addBinding(paneParams.value, 'rotation', { label: 'Rotation', step: 1, min: -180, max: 180 }).on('change', (ev) => {
+        if (!currentlySelectedObject.value) { return }
+        currentlySelectedObject.value.rotation = [ev.value.x, ev.value.y, ev.value.z]
+      });
+
+      // const fRemove = pane.value.addFolder({
+      //   title: 'Remove',
+      // });
+
+      pane.value.addBlade({
+        view: 'separator',
+      });
+      pane.value.addButton({
+        label: 'Remove object from scene',   // optional
+        title: 'Remove',
+      }).on('click', () => {
+        removeObject(obj.uuid)
+      });
+
+      pane.value.addBlade({
+        view: 'separator',
+      });
+
+    }
   }
 }
 
@@ -144,8 +219,8 @@ function mergeLocalAndWorldPositions() {
     currentlySelectedObject.value.position = selectedEntity.object3D.localToWorld(currentlySelectedObject.value.positionLocal.clone())
     currentlySelectedObject.value.positionLocal = new THREE.Vector3()
     if (paneParams.value) {
-      paneParams.value.Position = currentlySelectedObject.value.position
-      paneParams.value['Move local position'] = currentlySelectedObject.value.positionLocal
+      paneParams.value['posGlobal'] = currentlySelectedObject.value.position
+      paneParams.value['posLocal'] = currentlySelectedObject.value.positionLocal
       pane.value?.refresh()
     }
   }
@@ -155,13 +230,16 @@ const bus = useEventBus(clickKey)
 const unsubscribe = bus.on((e) => {
   if (currentlySelectedObject.value) {
     currentlySelectedObjectId.value = undefined
-    updatePaneBySelected()
+    updatePaneSelected()
   }
   if (e.cursorObject) {
     placeMovedObject(e.cursorObject)
   }
 })
 
+onMounted(() => {
+  initPaneCreate()
+})
 
 // const props = defineProps<{
 // }>()
@@ -173,7 +251,6 @@ const unsubscribe = bus.on((e) => {
 
 <template>
   <div>
-
     <!-- #region Place objects -->
     <Teleport to="#tp-ui-left">
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
@@ -187,7 +264,10 @@ const unsubscribe = bus.on((e) => {
 
     <!-- #region Tweakpane UI -->
     <Teleport to="#tp-ui-right">
-      <div ref="paneContainer"></div>
+      <div id="paneContainer" ref="paneContainer" class="flex flex-col gap-1">
+        <div id="pane1" />
+        <div id="pane2" />
+      </div>
     </Teleport>
     <!-- #endregion -->
 
@@ -198,12 +278,8 @@ const unsubscribe = bus.on((e) => {
 
     <Teleport to="#tp-aframe-scene">
       <a-entity ref="placedObjectsEntity">
-        <!-- <component v-for="placedObject in placedObjects" :key="placedObject.type"
-          @click="selectEntity(placedObject.uuid, $event)" class="clickable"
-          :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid}; color: #ff00ff;`"
-          :is="placedObject.type" :src="placedObject.src" :position="placedObject.position"
-          :rotation="arrToCoordString(placedObject.rotation)" /> -->
-        <a-entity v-for="placedObject in placedObjects" :key="placedObject.type" :position="placedObject.position"
+        <a-entity v-for="placedObject in placedObjects" :key="placedObject.type"
+          :scale="`${placedObject.scale} ${placedObject.scale} ${placedObject.scale}`" :position="placedObject.position"
           :rotation="arrToCoordString(placedObject.rotation)" :id="placedObject.uuid"
           :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid}; color: #ff00ff;`">
           <component @click="selectEntity(placedObject.uuid, $event)" class="clickable"
@@ -216,4 +292,8 @@ const unsubscribe = bus.on((e) => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+#paneContainer>* {
+  display: inline-block;
+}
+</style>
