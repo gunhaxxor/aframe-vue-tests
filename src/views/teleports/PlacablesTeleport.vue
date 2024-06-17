@@ -9,6 +9,14 @@ import { clickKey } from '@/composables/utils'
 import { type DetailEvent, THREE, type Entity } from 'aframe';
 import PdfEntity from '@/components/PdfEntity.vue';
 
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+  DialogDescription,
+} from '@headlessui/vue'
+
+
 defineOptions({
   components: { PdfEntity },
 })
@@ -50,6 +58,83 @@ const currentlySelectedObject = computed(() => {
   return placedObjects.find(obj => obj.uuid === currentlySelectedObjectId.value)
 })
 
+type Asset = {
+  "assetId": UUID,
+  "assetType": string,
+  "originalFileName": string,
+  "generatedName": string,
+  "size": number,
+  "mimeType": string,
+  "assetFileExtension": string,
+  "ownerUserId": UUID,
+  "createdAt": string
+  "updatedAt": string
+}
+
+const assets: Asset[] = [
+  {
+    "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d19",
+    "assetType": "navmesh",
+    "originalFileName": "joey-chacon-edbYu4vxXww-unsplash.jpg",
+    "generatedName": "joey-chacon-edbYu4vxXww-unsplash.jpg",
+    "size": 349296,
+    "mimeType": "image/png",
+    "assetFileExtension": "png",
+    "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
+    "createdAt": "2024-06-13T06:45:03.491Z",
+    "updatedAt": "2024-06-13T06:45:03.476Z"
+  },
+  {
+    "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d10",
+    "assetType": "navmesh",
+    "originalFileName": "vr-kids-0.jpeg",
+    "generatedName": "vr-kids-0.jpeg",
+    "size": 349296,
+    "mimeType": "image/jpeg",
+    "assetFileExtension": "jpeg",
+    "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
+    "createdAt": "2024-06-13T06:45:03.491Z",
+    "updatedAt": "2024-06-13T06:45:03.476Z"
+  },
+  {
+    "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d11",
+    "assetType": "navmesh",
+    "originalFileName": "vr-kids-1.jpeg",
+    "generatedName": "vr-kids-1.jpeg",
+    "size": 349296,
+    "mimeType": "image/jpeg",
+    "assetFileExtension": "jpeg",
+    "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
+    "createdAt": "2024-06-13T06:45:03.491Z",
+    "updatedAt": "2024-06-13T06:45:03.476Z"
+  },
+  {
+    "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d12",
+    "assetType": "navmesh",
+    "originalFileName": "vr-kids-2.jpeg",
+    "generatedName": "vr-kids-2.jpeg",
+    "size": 349296,
+    "mimeType": "image/jpeg",
+    "assetFileExtension": "jpeg",
+    "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
+    "createdAt": "2024-06-13T06:45:03.491Z",
+    "updatedAt": "2024-06-13T06:45:03.476Z"
+  },
+  {
+    "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d13",
+    "assetType": "navmesh",
+    "originalFileName": "vr-kids-3.jpeg",
+    "generatedName": "vr-kids-3.jpeg",
+    "size": 349296,
+    "mimeType": "image/jpeg",
+    "assetFileExtension": "jpeg",
+    "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
+    "createdAt": "2024-06-13T06:45:03.491Z",
+    "updatedAt": "2024-06-13T06:45:03.476Z"
+  }
+]
+
+const assetPickerIsOpen = ref(true)
 
 const placedObjectsEntity = ref<Entity>();
 function placeMovedObject(cursorObject: THREE.Object3D) {
@@ -61,6 +146,11 @@ function placeMovedObject(cursorObject: THREE.Object3D) {
   placedObjects.push({ ...currentlyMovedObject.value, scale, position, positionLocal, rotation });
   selectEntity(currentlyMovedObject.value.uuid, undefined)
   currentlyMovedObject.value = undefined;
+}
+
+function pickAsset(type: placeableAssetTypes, src: string) {
+  assetPickerIsOpen.value = false
+  createPlaceableObject(type, src)
 }
 
 function createPlaceableObject(type: placeableAssetTypes, src: string) {
@@ -114,9 +204,15 @@ function initPaneCreate() {
     p.title = "Objects in scene"
 
     p.addButton({
+      title: 'Add image (picker)',
+    }).on('click', () => {
+      assetPickerIsOpen.value = true
+    });
+
+    p.addButton({
       title: 'Add image',
     }).on('click', () => {
-      createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')
+      createPlaceableObject('a-image', '/photos/' + assets[1].generatedName)
     });
 
     p.addButton({
@@ -288,6 +384,34 @@ onMounted(() => {
         </a-entity>
       </a-entity>
     </Teleport>
+
+    <!-- Asset picker model -->
+
+    <Dialog :open="assetPickerIsOpen" @close="assetPickerIsOpen = false" class="relative z-50">
+      <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
+
+        <DialogPanel
+          class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+          <DialogTitle>Pick an asset</DialogTitle>
+          <DialogDescription>
+            Pick it!
+          </DialogDescription>
+
+          <div class="flex flex-row flex-wrap gap-1">
+
+            <div v-for="asset in assets.filter(a => a.mimeType.split('/')[0] === 'image')" :key="asset.assetId"
+              class="basis-1/3 cursor-pointer" @click="pickAsset('a-image', '/photos/' + asset.generatedName)">
+              <img :src="'/photos/' + asset.generatedName" />
+            </div>
+          </div>
+
+          <p>
+            Did you pick?
+          </p>
+
+        </DialogPanel>
+      </div>
+    </Dialog>
 
   </div>
 </template>
