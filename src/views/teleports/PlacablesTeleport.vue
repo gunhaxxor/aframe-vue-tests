@@ -161,7 +161,7 @@ function updatePaneSelected() {
         view: 'separator',
       });
 
-      pane.value.addBinding(paneParams.value, 'positionGlobal', { label: 'Global position', step: 0.01 }).on('change', (ev) => {
+      pane.value.addBinding(paneParams.value, 'positionGlobal', { label: 'Global position', step: 0.025 }).on('change', (ev) => {
         if (!currentlySelectedObject.value) { return }
         currentlySelectedObject.value.position = ev.value.clone()
       });
@@ -219,8 +219,8 @@ function mergeLocalAndWorldPositions() {
     currentlySelectedObject.value.position = selectedEntity.object3D.localToWorld(currentlySelectedObject.value.positionLocal.clone())
     currentlySelectedObject.value.positionLocal = new THREE.Vector3()
     if (paneParams.value) {
-      paneParams.value['posGlobal'] = currentlySelectedObject.value.position
-      paneParams.value['posLocal'] = currentlySelectedObject.value.positionLocal
+      paneParams.value['positionGlobal'] = currentlySelectedObject.value.position
+      paneParams.value['positionLocal'] = currentlySelectedObject.value.positionLocal
       pane.value?.refresh()
     }
   }
