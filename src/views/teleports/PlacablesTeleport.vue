@@ -9,6 +9,9 @@ import { clickKey } from '@/composables/utils'
 import { type DetailEvent, THREE, type Entity } from 'aframe';
 import PdfEntity from '@/components/PdfEntity.vue';
 
+import { useDropZone, useFileDialog } from '@vueuse/core'
+
+
 import {
   Dialog,
   DialogPanel,
@@ -171,6 +174,27 @@ function pickAsset(type: placeableAssetTypes, src: string) {
   assetPickerIsOpen.value = false
   createPlaceableObject(type, src)
 }
+
+const { files, open, reset, onChange } = useFileDialog({
+  // accept: 'image/*', // Set to accept only image files
+  // directory: true, // Select directories instead of files if set true
+})
+
+onChange((files) => {
+  console.log("Files selected", files)
+})
+
+const dropZoneRef = ref<HTMLDivElement>()
+
+function onDrop(filesDropped: File[] | null) {
+  console.log("Dropped files", filesDropped)
+}
+
+const { isOverDropZone } = useDropZone(dropZoneRef, {
+  onDrop,
+  // specify the types of data to be received.
+  // dataTypes: ['image/jpeg']
+})
 
 function createPlaceableObject(type: placeableAssetTypes, src: string) {
   console.log("Place photo", type, src)
@@ -367,14 +391,12 @@ onMounted(() => {
 <template>
   <div>
     <!-- #region Place objects -->
-    <Teleport to="#tp-ui-left">
+    <!-- <Teleport to="#tp-ui-left">
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
         @click="createPlaceableObject('a-image', '/photos/joey-chacon-edbYu4vxXww-unsplash.jpg')">place photo</button>
       <button class="p-3 text-white rounded-md cursor-pointer bg-zinc-800"
         @click="createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')">Place pdf</button>
-      <!-- <pre class="text-xs bg-white/40">{{ currentlySelectedObject }}</pre> -->
-      <!-- <pre class="text-xs bg-white/40">{{ placedObjects }}</pre> -->
-    </Teleport>
+    </Teleport> -->
     <!-- #endregion -->
 
     <!-- #region Tweakpane UI -->
@@ -404,10 +426,14 @@ onMounted(() => {
       </a-entity>
     </Teleport>
 
-    <!-- Asset picker model -->
-
-    <Dialog :open="assetPickerIsOpen" @close="assetPickerIsOpen = false" class="relative z-50">
+    <!-- Asset picker -->
+    <Dialog ref="dropZoneRef" :open="assetPickerIsOpen" @close="assetPickerIsOpen = false" class="relative z-50">
       <div class="fixed inset-0 flex w-screen items-center justify-center p-40">
+
+        <div v-if="isOverDropZone"
+          class="absolute top-0 left-0 bg-slate-50 opacity-90 w-screen h-screen pointer-events-none z-10 flex items-center justify-center">
+          Drop
+          your files here</div>
 
         <DialogPanel
           class="w-full h-full transform rounded-2xl bg-white p-4 text-left align-middle shadow-xl transition-all">
@@ -431,6 +457,13 @@ onMounted(() => {
                     <p>{{ asset.originalFileName }}</p>
                   </div>
                 </div>
+              </div>
+              <div class="basis-1/4 cursor-pointer p-1 flex items-center justify-center">
+                <div class="flex flex-col p-4">
+                  <button type="button" class="btn" @click="open">Upload a new asset</button>
+                  <span class="label-text">or drag and drop your files</span>
+                </div>
+
               </div>
             </div>
           </div>
