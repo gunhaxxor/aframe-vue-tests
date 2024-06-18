@@ -60,9 +60,10 @@ const currentlySelectedObject = computed(() => {
 
 type Asset = {
   "assetId": UUID,
-  "assetType": string,
+  "assetType": placeableAssetTypes,
   "originalFileName": string,
   "generatedName": string,
+  "location": string,
   "size": number,
   "mimeType": string,
   "assetFileExtension": string,
@@ -74,9 +75,10 @@ type Asset = {
 const assets: Asset[] = [
   {
     "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d19",
-    "assetType": "navmesh",
+    "assetType": "a-image",
     "originalFileName": "joey-chacon-edbYu4vxXww-unsplash.jpg",
     "generatedName": "joey-chacon-edbYu4vxXww-unsplash.jpg",
+    "location": "/photos/",
     "size": 349296,
     "mimeType": "image/png",
     "assetFileExtension": "png",
@@ -85,10 +87,24 @@ const assets: Asset[] = [
     "updatedAt": "2024-06-13T06:45:03.476Z"
   },
   {
+    "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d09",
+    "assetType": "PdfEntity",
+    "originalFileName": "smallpdf_sample.pdf",
+    "generatedName": "smallpdf_sample.pdf",
+    "location": "/documents/",
+    "size": 349296,
+    "mimeType": "document/pdf",
+    "assetFileExtension": "pdf",
+    "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
+    "createdAt": "2024-06-13T06:45:03.491Z",
+    "updatedAt": "2024-06-13T06:45:03.476Z"
+  },
+  {
     "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d10",
-    "assetType": "navmesh",
+    "assetType": "a-image",
     "originalFileName": "vr-kids-0.jpeg",
     "generatedName": "vr-kids-0.jpeg",
+    "location": "/photos/",
     "size": 349296,
     "mimeType": "image/jpeg",
     "assetFileExtension": "jpeg",
@@ -98,9 +114,10 @@ const assets: Asset[] = [
   },
   {
     "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d11",
-    "assetType": "navmesh",
+    "assetType": "a-image",
     "originalFileName": "vr-kids-1.jpeg",
     "generatedName": "vr-kids-1.jpeg",
+    "location": "/photos/",
     "size": 349296,
     "mimeType": "image/jpeg",
     "assetFileExtension": "jpeg",
@@ -110,9 +127,10 @@ const assets: Asset[] = [
   },
   {
     "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d12",
-    "assetType": "navmesh",
+    "assetType": "a-image",
     "originalFileName": "vr-kids-2.jpeg",
     "generatedName": "vr-kids-2.jpeg",
+    "location": "/photos/",
     "size": 349296,
     "mimeType": "image/jpeg",
     "assetFileExtension": "jpeg",
@@ -122,9 +140,10 @@ const assets: Asset[] = [
   },
   {
     "assetId": "7388c2b6-50e5-4c24-8f46-3d06b58e0d13",
-    "assetType": "navmesh",
+    "assetType": "a-image",
     "originalFileName": "vr-kids-3.jpeg",
     "generatedName": "vr-kids-3.jpeg",
+    "location": "/photos/",
     "size": 349296,
     "mimeType": "image/jpeg",
     "assetFileExtension": "jpeg",
@@ -374,7 +393,7 @@ onMounted(() => {
 
     <Teleport to="#tp-aframe-scene">
       <a-entity ref="placedObjectsEntity">
-        <a-entity v-for="placedObject in placedObjects" :key="placedObject.type"
+        <a-entity v-for="placedObject in placedObjects" :key="placedObject.uuid"
           :scale="`${placedObject.scale} ${placedObject.scale} ${placedObject.scale}`" :position="placedObject.position"
           :rotation="arrToCoordString(placedObject.rotation)" :id="placedObject.uuid"
           :box-helper="`enabled: ${currentlySelectedObjectId === placedObject.uuid}; color: #ff00ff;`">
@@ -388,26 +407,33 @@ onMounted(() => {
     <!-- Asset picker model -->
 
     <Dialog :open="assetPickerIsOpen" @close="assetPickerIsOpen = false" class="relative z-50">
-      <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
+      <div class="fixed inset-0 flex w-screen items-center justify-center p-40">
 
         <DialogPanel
-          class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-          <DialogTitle>Pick an asset</DialogTitle>
-          <DialogDescription>
-            Pick it!
-          </DialogDescription>
+          class="w-full h-full transform rounded-2xl bg-white p-4 text-left align-middle shadow-xl transition-all">
+          <div class="h-full overflow-y-auto">
+            <DialogTitle>Pick an asset and place it in the scene</DialogTitle>
+            <!-- <DialogDescription>Pick it!</DialogDescription> -->
 
-          <div class="flex flex-row flex-wrap gap-1">
+            <div class="flex flex-row flex-wrap ">
+              <!-- <div v-for="asset in assets.filter(a => a.assetType === 'image')" :key="asset.assetId" -->
+              <div v-for="asset in assets" :key="asset.assetId" class="basis-1/4 cursor-pointer p-1"
+                @click="pickAsset(asset.assetType, asset.location + asset.generatedName)">
+                <div class="card card-compact bg-base-100 shadow-xl">
 
-            <div v-for="asset in assets.filter(a => a.mimeType.split('/')[0] === 'image')" :key="asset.assetId"
-              class="basis-1/3 cursor-pointer" @click="pickAsset('a-image', '/photos/' + asset.generatedName)">
-              <img :src="'/photos/' + asset.generatedName" />
+                  <figure class="h-40">
+                    <img v-if="asset.assetType === 'a-image'" :src="asset.location + asset.generatedName" />
+                    <embed v-if="asset.assetType === 'PdfEntity'" :src="asset.location + asset.generatedName"
+                      type="application/pdf" width="100%" height="100%" />
+
+                  </figure>
+                  <div class="card-body">
+                    <p>{{ asset.originalFileName }}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <p>
-            Did you pick?
-          </p>
 
         </DialogPanel>
       </div>
