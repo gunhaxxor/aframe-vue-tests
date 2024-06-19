@@ -96,7 +96,7 @@ const assets: Asset[] = [
     "generatedName": "smallpdf_sample.pdf",
     "location": "/documents/",
     "size": 349296,
-    "mimeType": "document/pdf",
+    "mimeType": "application/pdf",
     "assetFileExtension": "pdf",
     "ownerUserId": "39c64016-6feb-48c9-a83e-0a22f7e6f9f6",
     "createdAt": "2024-06-13T06:45:03.491Z",
@@ -193,7 +193,7 @@ function onDrop(filesDropped: File[] | null) {
 const { isOverDropZone } = useDropZone(dropZoneRef, {
   onDrop,
   // specify the types of data to be received.
-  // dataTypes: ['image/jpeg']
+  dataTypes: ['image/jpeg', 'image/png', 'model/gltf-binary', 'model/gltf+json', 'application/pdf']
 })
 
 function createPlaceableObject(type: placeableAssetTypes, src: string) {
@@ -247,22 +247,11 @@ function initPaneCreate() {
     p.title = "Objects in scene"
 
     p.addButton({
-      title: 'Add image (picker)',
+      title: 'Add new object',
     }).on('click', () => {
       assetPickerIsOpen.value = true
     });
 
-    p.addButton({
-      title: 'Add image',
-    }).on('click', () => {
-      createPlaceableObject('a-image', '/photos/' + assets[1].generatedName)
-    });
-
-    p.addButton({
-      title: 'Add PDF',
-    }).on('click', () => {
-      createPlaceableObject('PdfEntity', '/documents/smallpdf_sample.pdf')
-    });
   }
 }
 
@@ -286,10 +275,6 @@ function updatePaneSelected() {
         'positionLocal': obj.positionLocal,
         'rotation': new THREE.Vector3(obj.rotation[0], obj.rotation[1], obj.rotation[2])
       }
-
-      // const fProperties = pane.value.addFolder({
-      //   title: 'Properties',
-      // });
 
       pane.value.addBinding(paneParams.value, 'scale', { label: 'Scale', step: 0.01 }).on('change', (ev) => {
         if (!currentlySelectedObject.value) { return }
@@ -328,10 +313,6 @@ function updatePaneSelected() {
         if (!currentlySelectedObject.value) { return }
         currentlySelectedObject.value.rotation = [ev.value.x, ev.value.y, ev.value.z]
       });
-
-      // const fRemove = pane.value.addFolder({
-      //   title: 'Remove',
-      // });
 
       pane.value.addBlade({
         view: 'separator',
@@ -379,12 +360,6 @@ const unsubscribe = bus.on((e) => {
 onMounted(() => {
   initPaneCreate()
 })
-
-// const props = defineProps<{
-// }>()
-
-// const emit = defineEmits<{
-// }>()
 
 </script>
 
