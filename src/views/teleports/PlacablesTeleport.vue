@@ -184,17 +184,18 @@ onChange((files) => {
   console.log("Files selected", files)
 })
 
-const dropZoneRef = ref<HTMLDivElement>()
+// DROP ZONE
+// const dropZoneRef = ref<HTMLDivElement>()
 
-function onDrop(filesDropped: File[] | null) {
-  console.log("Dropped files", filesDropped)
-}
+// function onDrop(filesDropped: File[] | null) {
+//   console.log("Dropped files", filesDropped)
+// }
 
-const { isOverDropZone } = useDropZone(dropZoneRef, {
-  onDrop,
-  // specify the types of data to be received.
-  dataTypes: ['image/jpeg', 'image/png', 'model/gltf-binary', 'model/gltf+json', 'application/pdf']
-})
+// const { isOverDropZone } = useDropZone(dropZoneRef, {
+//   onDrop,
+//   // specify the types of data to be received.
+//   dataTypes: ['image/jpeg', 'image/png', 'model/gltf-binary', 'model/gltf+json', 'application/pdf']
+// })
 
 function createPlaceableObject(type: placeableAssetTypes, src: string) {
   console.log("Place photo", type, src)
@@ -405,10 +406,10 @@ onMounted(() => {
     <Dialog ref="dropZoneRef" :open="assetPickerIsOpen" @close="assetPickerIsOpen = false" class="relative z-50">
       <div class="fixed inset-0 flex w-screen items-center justify-center p-40">
 
-        <div v-if="isOverDropZone"
+        <!-- <div v-if="isOverDropZone"
           class="absolute top-0 left-0 bg-slate-50 opacity-90 w-screen h-screen pointer-events-none z-10 flex items-center justify-center">
           Drop
-          your files here</div>
+          your files here</div> -->
 
         <DialogPanel
           class="w-full h-full transform rounded-2xl bg-white p-4 text-left align-middle shadow-xl transition-all">
@@ -436,7 +437,7 @@ onMounted(() => {
               <div class="basis-1/4 cursor-pointer p-1 flex items-center justify-center">
                 <div class="flex flex-col p-4">
                   <button type="button" class="btn" @click="open">Upload a new asset</button>
-                  <span class="label-text">or drag and drop your files</span>
+                  <!-- <span class="label-text">or drag and drop your files</span> -->
                 </div>
 
               </div>
