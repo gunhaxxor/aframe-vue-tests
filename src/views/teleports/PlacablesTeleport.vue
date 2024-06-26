@@ -156,7 +156,7 @@ const assets: Asset[] = [
   }
 ]
 
-const assetPickerIsOpen = ref(true)
+const assetPickerIsOpen = ref(false)
 
 const placedObjectsEntity = ref<Entity>();
 function placeMovedObject(cursorObject: THREE.Object3D) {
@@ -376,7 +376,7 @@ onMounted(() => {
     <!-- #endregion -->
 
     <!-- #region Tweakpane UI -->
-    <Teleport to="#tp-ui-right">
+    <Teleport v-if="!isVR" to="#tp-ui-right">
       <div id="paneContainer" ref="paneContainer" class="flex flex-col gap-1">
         <div id="pane1" />
         <div id="pane2" />
@@ -384,7 +384,7 @@ onMounted(() => {
     </Teleport>
     <!-- #endregion -->
 
-    <Teleport to="#tp-aframe-cursor">
+    <Teleport v-if="!isVR" to="#tp-aframe-cursor">
       <component ref="currentlyMovedEntity" v-if="currentlyMovedObject" :is="currentlyMovedObject.type"
         :src="currentlyMovedObject.src" />
     </Teleport>
@@ -403,25 +403,26 @@ onMounted(() => {
     </Teleport>
 
     <!-- Asset picker -->
-    <Dialog ref="dropZoneRef" :open="assetPickerIsOpen" @close="assetPickerIsOpen = false" class="relative z-50">
-      <div class="fixed inset-0 flex w-screen items-center justify-center p-40">
+    <Dialog v-if="!isVR" ref="dropZoneRef" :open="assetPickerIsOpen" @close="assetPickerIsOpen = false"
+      class="relative z-50">
+      <div class="fixed inset-0 flex items-center justify-center w-screen p-40">
 
         <!-- <div v-if="isOverDropZone"
-          class="absolute top-0 left-0 bg-slate-50 opacity-90 w-screen h-screen pointer-events-none z-10 flex items-center justify-center">
+          class="absolute top-0 left-0 z-10 flex items-center justify-center w-screen h-screen pointer-events-none bg-slate-50 opacity-90">
           Drop
           your files here</div> -->
 
         <DialogPanel
-          class="w-full h-full transform rounded-2xl bg-white p-4 text-left align-middle shadow-xl transition-all">
+          class="w-full h-full p-4 text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
           <div class="h-full overflow-y-auto">
             <DialogTitle>Pick an asset and place it in the scene</DialogTitle>
             <!-- <DialogDescription>Pick it!</DialogDescription> -->
 
             <div class="flex flex-row flex-wrap ">
               <!-- <div v-for="asset in assets.filter(a => a.assetType === 'image')" :key="asset.assetId" -->
-              <div v-for="asset in assets" :key="asset.assetId" class="basis-1/4 cursor-pointer p-1"
+              <div v-for="asset in assets" :key="asset.assetId" class="p-1 cursor-pointer basis-1/4"
                 @click="pickAsset(asset.assetType, asset.location + asset.generatedName)">
-                <div class="card card-compact bg-base-100 shadow-xl">
+                <div class="shadow-xl card card-compact bg-base-100">
 
                   <figure class="h-40">
                     <img v-if="asset.assetType === 'a-image'" :src="asset.location + asset.generatedName" />
@@ -434,7 +435,7 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-              <div class="basis-1/4 cursor-pointer p-1 flex items-center justify-center">
+              <div class="flex items-center justify-center p-1 cursor-pointer basis-1/4">
                 <div class="flex flex-col p-4">
                   <button type="button" class="btn" @click="open">Upload a new asset</button>
                   <!-- <span class="label-text">or drag and drop your files</span> -->

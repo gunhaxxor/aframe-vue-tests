@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type Ref, ref } from 'vue';
 import { type DetailEvent, THREE, type Scene } from 'aframe';
-import { isVR } from '@/composables/utils'
+import { isVR, oculusButtons } from '@/composables/utils'
 
 import LaserPointerSelf from '@/components/LaserPointerSelf.vue'
 import LaserPointerOther from '@/components/LaserPointerOther.vue'
@@ -36,7 +36,7 @@ function laserUpdate(active: boolean, position?: THREE.Vector3) {
   <!-- Raycast and emit intersection points for own cursor / hand control -->
   <!-- Render as a white (inactive) or green (active) cube -->
   <Teleport to="#tp-aframe-cursor">
-    <LaserPointerSelf :active="laserActive" :intersection="cursorIntersection" @update="laserUpdate" />
+    <LaserPointerSelf :active="oculusButtons['a']" :intersection="cursorIntersection" @update="laserUpdate" />
   </Teleport>
 
   <Teleport to="#tp-aframe-scene">
@@ -45,12 +45,12 @@ function laserUpdate(active: boolean, position?: THREE.Vector3) {
     <LaserPointerOther :point="otherPosition" />
   </Teleport>
 
-  <a-entity v-if="isVR">
+  <!-- <a-entity v-if="isVR">
     <a-entity laser-controls="hand: right" raycaster="objects: .clickable" raycaster-update
       @raycast-update="setIntersection"></a-entity>
     <a-entity oculus-touch-controls="hand: right" laser-pointer
       @laser-active-toggle="setLaserActiveByOculusHandControl"></a-entity>
-  </a-entity>
+  </a-entity> -->
 
 </template>
 

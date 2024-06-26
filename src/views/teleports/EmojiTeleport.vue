@@ -72,14 +72,14 @@ onMounted(() => {
         <Listbox v-model="selectedCoords" @update:model-value="onEmojiSelected">
           <div class="relative mt-1">
             <ListboxButton
-              class="relative rounded-lg bg-white py-2 pl-4 pr-4 text-left shadow-md focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
+              class="relative py-2 pl-4 pr-4 text-left bg-white rounded-lg shadow-md focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
               <SpriteRender v-if="selectedCoords" class="sprite" :sheet-url="sheetUrl" :uvs="uvs"
                 :coords="selectedCoords" :class="{ 'opacity-75': !active, 'transition': !active }" />
             </ListboxButton>
 
 
             <ListboxOptions
-              class="absolute mt-1 max-h-60 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+              class="absolute py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black/5 focus:outline-none sm:text-sm">
               <ListboxOption v-for="(coords, i) in coordsFlat" :key="i" :value="coords">
                 <li :class="[
                   coords.toString() === selectedCoords.toString() ? 'bg-slate-300' : 'bg-white',
@@ -96,13 +96,17 @@ onMounted(() => {
 
     <!-- #region Emoji picker for VR/hand controls -->
     <Teleport v-if="oculusButtons.x" to="#tp-aframe-hand-left">
-      <a-entity position="0 0.1 0" mesh-ui-block="backgroundOpacity: 0.2; contentDirection: column; fontSize: 0.03;"
-        class="">
+      <a-entity position="0 0 -0.1" rotation="-90 0 0"
+        mesh-ui-block="backgroundOpacity: 0.2; contentDirection: column; fontSize: 0.03;" class="">
         <a-entity v-for="(coordsGroup, iCg) in coords" :key="iCg"
           mesh-ui-block="backgroundOpacity: 0; contentDirection: row; textAlign: left;">
           <template v-for="(coords, iC) in coordsGroup" :key="iC">
-            <a-entity mesh-ui-block="backgroundOpacity: 0; width: 0.05; height: 0.05; margin: 0.01;" class="clickable"
-              @click="selectEmoji(coords)">
+            <a-entity
+              mesh-ui-block="backgroundOpacity: 0; backgroundColor: white; width: 0.05; height: 0.05; margin: 0.01;"
+              class="clickable bg-red" @click="selectEmoji(coords)"
+              @mouseenter="$event.target.emit('setState', 'hover')"
+              @mouseleave="$event.target.emit('setState', 'default')"
+              mesh-ui-block-state__hover="backgroundOpacity: 0.5;">
               <a-entity ref="emoji" position="0 0 0.01">
                 <a-entity
                   :atlas-uvs="'totalRows: 43; totalColumns: 43; column: ' + coords[0] + '; row: ' + coords[1] + ';'"

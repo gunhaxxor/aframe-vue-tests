@@ -6,10 +6,10 @@
     <div id="tp-ui-left" class="flex flex-col gap-1 pointer-events-auto">
       <slot name="left" />
     </div>
-    <div id="tp-ui-center" class="">
+    <div id="tp-ui-center" class="flex flex-col gap-1 pointer-events-auto">
       <slot name="center" />
     </div>
-    <div id="tp-ui-right" class="flex flex-col gap-1">
+    <div id="tp-ui-right" class="flex flex-col gap-1 pointer-events-auto">
       <div id="tp-tweakpane"></div>
       <slot name="right" />
     </div>

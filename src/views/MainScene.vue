@@ -32,6 +32,10 @@ function placeCursor(evt: DetailEvent<RayIntersectionData>) {
   cursor.object3D.rotation.setFromQuaternion(quat);
 }
 
+function placeCursorFromHandControls(evt: DetailEvent<{ intersection: THREE.Intersection }>) {
+  cursorEntity.value?.object3D.position.set(evt.detail.intersection.point.x, evt.detail.intersection.point.y, evt.detail.intersection.point.z)
+}
+
 function intersectionToTransform(intersectionData: RayIntersectionData, normalOffset: number = 0.05) {
   const { intersection, rayDirection } = intersectionData;
   const position = intersection.point.clone();
@@ -94,7 +98,7 @@ function setEmojiSelf(coords: Tuple, active: boolean) {
 // #endregion
 
 // Simulate Oculus hand controls
-simulateOculus()
+// simulateOculus()
 
 </script>
 
@@ -143,13 +147,31 @@ simulateOculus()
     </a-entity>
 
     <!-- Components (prefereably in @/assets/views/teleports/) can render to here using the Teleport component -->
-    <template v-if="!oculusHandSimulator.simulate">
-      <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left" @xbuttondown="oculusButtons['x'] = true"
+    <template v-if="!oculusHandSimulator.simulate && isVR">
+      <!-- <a-entity id="tp-aframe-hand-left" oculus-touch-controls="hand: left" @xbuttondown="oculusButtons['x'] = true"
         @xbuttonup="oculusButtons['x'] = false" @ybuttondown="oculusButtons['y'] = true"
-        @ybuttonup="oculusButtons['y'] = false"></a-entity>
+        @ybuttonup="oculusButtons['y'] = false" @gripdown="oculusButtons['grip-left'] = true"
+        @gripup="oculusButtons['grip-left'] = false" @triggerdown="oculusButtons['trigger-left'] = true"
+        @triggerup="oculusButtons['trigger-left'] = false"></a-entity>
       <a-entity id="tp-aframe-hand-right" oculus-touch-controls="hand: right" @abuttondown="oculusButtons['a'] = true"
         @abuttonup="oculusButtons['a'] = false" @bbuttondown="oculusButtons['b'] = true"
-        @bbuttonup="oculusButtons['b'] = false"></a-entity>
+        @bbuttonup="oculusButtons['b'] = false" @gripdown="oculusButtons['grip-right'] = true"
+        @gripup="oculusButtons['grip-right'] = false" @triggerdown="oculusButtons['trigger-right'] = true"
+        @triggerup="oculusButtons['trigger-right'] = false" raycaster="objects: .clickable" raycaster-update
+        @raycast-update="placeCursorFromHandControls"></a-entity> -->
+      <a-entity id="tp-aframe-hand-left" laser-controls="hand: left;" raycaster="enabled: false; showLine: false"
+        @xbuttondown="oculusButtons['x'] = true" @xbuttonup="oculusButtons['x'] = false"
+        @ybuttondown="oculusButtons['y'] = true" @ybuttonup="oculusButtons['y'] = false"
+        @gripdown="oculusButtons['grip-left'] = true" @gripup="oculusButtons['grip-left'] = false"
+        @triggerdown="oculusButtons['trigger-left'] = true"
+        @triggerup="oculusButtons['trigger-left'] = false"></a-entity>
+      <a-entity id="tp-aframe-hand-right" laser-controls="'hand: right;"
+        raycaster="objects: .clickable; lineOpacity: 0.75" raycaster-update
+        @raycast-update="placeCursorFromHandControls" @abuttondown="oculusButtons['a'] = true"
+        @abuttonup="oculusButtons['a'] = false" @bbuttondown="oculusButtons['b'] = true"
+        @bbuttonup="oculusButtons['b'] = false" @gripdown="oculusButtons['grip-right'] = true"
+        @gripup="oculusButtons['grip-right'] = false" @triggerdown="oculusButtons['trigger-right'] = true"
+        @triggerup="oculusButtons['trigger-right'] = false"></a-entity>
     </template>
 
     <a-entity ref="cursorEntity" id="tp-aframe-cursor">
